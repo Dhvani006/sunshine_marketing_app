@@ -144,15 +144,15 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Categories',
+          'Explore All Products',
           style: TextStyle(
-            color: Color(0xFF007B8F),
-            fontWeight: FontWeight.bold,
+            color: Color(0xFF222222),
+            fontWeight: FontWeight.w700,
           ),
         ),
-        backgroundColor: const Color.fromARGB(255, 232, 236, 236),
+        backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF007B8F)),
+        iconTheme: const IconThemeData(color: Color(0xFF6C63FF)),
       ),
       body: Row(
         children: [
@@ -202,20 +202,20 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                                   });
                                   fetchSubcategories(selectedMasterCategoryId!);
                                 },
-                                child: Container(
+                                  child: Container(
                                   width: double.infinity,
                                   padding: const EdgeInsets.symmetric(
                                       vertical: 12, horizontal: 8),
                                   decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? const Color(0xFFF37E15)
-                                            .withOpacity(0.1)
-                                        : Colors.transparent,
+                                      color: isSelected
+                                          ? const Color(0xFF6C63FF)
+                                              .withOpacity(0.06)
+                                          : Colors.transparent,
                                     border: Border(
                                       left: BorderSide(
-                                        color: isSelected
-                                            ? const Color(0xFFF37E15)
-                                            : Colors.transparent,
+                                          color: isSelected
+                                              ? const Color(0xFF6C63FF)
+                                              : Colors.transparent,
                                         width: 3,
                                       ),
                                     ),
@@ -264,10 +264,10 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                                           style: TextStyle(
                                             fontSize: 12,
                                             fontWeight: isSelected
-                                                ? FontWeight.bold
+                                                ? FontWeight.w700
                                                 : FontWeight.normal,
                                             color: isSelected
-                                                ? const Color(0xFFF37E15)
+                                                ? const Color(0xFF6C63FF)
                                                 : Colors.black87,
                                           ),
                                           textAlign: TextAlign.center,

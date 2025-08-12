@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'edit_profile_screen.dart';
 import 'order_history_screen.dart';
 import '../../../api_config.dart';
+import '../../constants/colors.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../categories/categories_screen.dart';
@@ -134,15 +135,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Profile',
+          'My Account',
           style: TextStyle(
-            color: Color(0xFF007B8F),
-            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w700,
           ),
         ),
-        backgroundColor: const Color.fromARGB(255, 232, 236, 236),
+        backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF007B8F)),
+        iconTheme: const IconThemeData(color: AppColors.purple),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -155,14 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(24.0),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF6B46C1), // Purple
-                          Color(0xFFF37E15), // Orange
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      gradient: AppColors.ctaGradient,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -184,7 +178,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFFF37E15),
+                              color: AppColors.orange,
                             ),
                           ),
                         ),
@@ -253,12 +247,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           leading: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF007B8F).withOpacity(0.1),
+                          color: AppColors.purple.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(
                               Icons.person_outline,
-                              color: Color(0xFF007B8F),
+                          color: AppColors.purple,
                               size: 24,
                             ),
                           ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'api_config.dart';
+import 'ecommerce/constants/colors.dart';
 import 'otp_registration_screen.dart';
 import 'ecommerce/screens/home/home_screen.dart';
 import 'services/auth_service.dart';
@@ -68,15 +69,15 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppColors.pageBackground,
       body: Center(
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Card(
-              elevation: 8,
+              elevation: 10,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Padding(
                 padding:
@@ -88,15 +89,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Login Heading
-                      Text(
-                        'Login',
-                        style: TextStyle(
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFB266FF), // purple shade
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
+                      Text('Login to Your Account',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          )),
                       const SizedBox(height: 12),
                       // Welcome message
                       RichText(
@@ -108,11 +107,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           children: [
                             const TextSpan(text: 'Welcome back to '),
-                            TextSpan(
-                              text: 'BoliBazaar!',
+                            const TextSpan(
+                              text: 'Sunshine Marketing!',
                               style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFB266FF),
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.purple,
                               ),
                             ),
                             const TextSpan(text: ' Please login to continue.'),
@@ -128,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                        ),
+                           ),
                         keyboardType: TextInputType.emailAddress,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
@@ -151,7 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          suffixIcon: IconButton(
+                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword
                                   ? Icons.visibility_off
@@ -184,21 +183,16 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             elevation: 0,
-                            backgroundColor: null,
                           ).copyWith(
                             backgroundColor:
                                 MaterialStateProperty.resolveWith<Color?>(
-                                    (states) => null),
+                                    (states) => Colors.transparent),
                             foregroundColor:
                                 MaterialStateProperty.all(Colors.white),
                           ),
                           child: Ink(
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [Color(0xFFFF5F6D), Color(0xFFB266FF)],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
+                              gradient: AppColors.ctaGradient,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Container(
@@ -215,14 +209,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                                 Colors.white),
                                       ),
                                     )
-                                  : const Text(
-                                      'LOGIN',
+                                  : const Text('Login',
                                       style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 1.2,
-                                      ),
-                                    ),
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700)),
                             ),
                           ),
                         ),
@@ -240,13 +230,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             );
                           },
-                          child: const Text(
-                            'Forgot Password?',
-                            style: TextStyle(
-                              color: Color(0xFFB266FF),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          child: const Text('Forgot Password?',
+                              style: TextStyle(
+                                  color: AppColors.purple,
+                                  fontWeight: FontWeight.w600)),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -268,13 +255,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               );
                             },
-                            child: const Text(
-                              'Register',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFB266FF),
-                              ),
-                            ),
+                            child: const Text('Sign up here',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.purple)),
                           ),
                         ],
                       ),

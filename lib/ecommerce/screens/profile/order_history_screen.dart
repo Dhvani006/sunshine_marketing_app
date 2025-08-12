@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../../api_config.dart';
+import '../../constants/colors.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   const OrderHistoryScreen({Key? key}) : super(key: key);
@@ -51,27 +52,25 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          'Order History',
-          style: TextStyle(
-            color: Color(0xFF007B8F),
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
+        title: const Text('Order History',
+            style: TextStyle(
+              color: Color(0xFF222222),
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+            )),
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF007B8F)),
+        iconTheme: const IconThemeData(color: Color(0xFF6C63FF)),
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFF007B8F).withOpacity(0.1),
+            color: const Color(0xFF6C63FF).withOpacity(0.1),
             shape: BoxShape.circle,
           ),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF007B8F)),
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF6C63FF)),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -82,7 +81,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(
-                color: Color(0xFF007B8F),
+                color: Color(0xFF6C63FF),
               ),
             );
           } else if (snapshot.hasError) {
@@ -168,7 +167,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF37E15),
+                              color: AppColors.orange,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(
@@ -186,8 +185,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                   'Order #${order['Order_id']}',
                                   style: const TextStyle(
                                     fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF007B8F),
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF222222),
                                   ),
                                 ),
                                 Text(
@@ -238,9 +237,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                           Expanded(
                             child: _buildInfoCard(
                               'Total Amount',
-                              '₹${order['Total_amount']}',
+                              'Rs. ${order['Total_amount']}',
                               Icons.attach_money,
-                              const Color(0xFFF37E15),
+                              AppColors.orange,
                             ),
                           ),
                         ],

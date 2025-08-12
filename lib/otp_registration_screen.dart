@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import 'api_config.dart';
+import 'ecommerce/constants/colors.dart';
 import 'login_screen.dart';
 import 'ecommerce/screens/home/home_screen.dart';
 import 'services/auth_service.dart';
@@ -265,7 +266,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.pageBackground,
       body: SafeArea(
         child: Column(
           children: [
@@ -276,8 +277,8 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
+                    color: Color(0x1A000000),
+                    blurRadius: 8,
                     offset: Offset(0, 2),
                   ),
                 ],
@@ -285,10 +286,10 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
               child: Column(
                 children: [
                   Text(
-                    'Register',
+                    'Create your account',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFFB266FF),
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
                         ),
                   ),
                   const SizedBox(height: 8),
@@ -339,7 +340,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
           height: 32,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isActive ? const Color(0xFFB266FF) : Colors.grey[300],
+            color: isActive ? AppColors.purple : Colors.grey[300],
           ),
           child: Center(
             child: isActive
@@ -368,7 +369,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: isActive ? const Color(0xFFB266FF) : Colors.grey[600],
+            color: isActive ? AppColors.purple : Colors.grey[600],
             fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
@@ -380,7 +381,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
     return Container(
       height: 2,
       margin: const EdgeInsets.only(bottom: 24),
-      color: isActive ? const Color(0xFFB266FF) : Colors.grey[300],
+      color: isActive ? AppColors.purple : Colors.grey[300],
     );
   }
 
@@ -391,13 +392,11 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 40),
-          Text(
-            'Step 1: Enter your email address',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFFB266FF),
-                ),
-          ),
+          Text('Step 1: Enter your email address',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  )),
           const SizedBox(height: 32),
           TextFormField(
             controller: _emailController,
@@ -422,11 +421,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
           const SizedBox(height: 32),
           Container(
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFB266FF), Color(0xFFFF5F6D)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
+              gradient: AppColors.ctaGradient,
               borderRadius: BorderRadius.circular(12),
             ),
             child: ElevatedButton(
@@ -517,13 +512,11 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
             ),
           ),
           const SizedBox(height: 32),
-          Text(
-            'Step 2: Verify your email',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFFB266FF),
-                ),
-          ),
+          Text('Step 2: Verify your email',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  )),
           const SizedBox(height: 16),
           Text(
             'We\'ve sent a 6-digit OTP to $_verifiedEmail',
@@ -565,11 +558,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
           const SizedBox(height: 24),
           Container(
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFB266FF), Color(0xFFFF5F6D)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
+              gradient: AppColors.ctaGradient,
               borderRadius: BorderRadius.circular(12),
             ),
             child: ElevatedButton(
@@ -613,7 +602,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               side: BorderSide(
-                color: _countdown == 0 ? const Color(0xFFB266FF) : Colors.grey[300]!,
+                color: _countdown == 0 ? AppColors.purple : Colors.grey[300]!,
               ),
             ),
             child: Text(
@@ -621,7 +610,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: _countdown == 0 ? const Color(0xFFB266FF) : Colors.grey[500],
+                color: _countdown == 0 ? AppColors.purple : Colors.grey[500],
               ),
             ),
           ),
@@ -686,13 +675,11 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
               ),
             ),
             const SizedBox(height: 32),
-            Text(
-              'Step 3: Complete your profile',
+          Text('Step 3: Complete your profile',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFFB266FF),
-                  ),
-            ),
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  )),
             const SizedBox(height: 24),
             // Username
             TextFormField(
@@ -827,11 +814,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
             const SizedBox(height: 32),
             Container(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFB266FF), Color(0xFFFF5F6D)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
+                gradient: AppColors.ctaGradient,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: ElevatedButton(

@@ -241,27 +241,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final discountedPrice = widget.price * (1 - widget.discount / 100);
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          'Product Details',
-          style: TextStyle(
-            color: Color(0xFF007B8F),
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
+        title: const Text('View Product',
+            style: TextStyle(
+              color: Color(0xFF222222),
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+            )),
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF007B8F)),
+        iconTheme: const IconThemeData(color: Color(0xFF6C63FF)),
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFF007B8F).withAlpha(26),
+            color: const Color(0xFF6C63FF).withAlpha(26),
             shape: BoxShape.circle,
           ),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF007B8F)),
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF6C63FF)),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -269,7 +267,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           Container(
             margin: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF007B8F).withAlpha(26),
+              color: const Color(0xFF6C63FF).withAlpha(26),
               shape: BoxShape.circle,
             ),
             child: IconButton(
@@ -278,7 +276,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               },
               icon: Icon(
                 _isWishlisted ? Icons.favorite : Icons.favorite_border,
-                color: _isWishlisted ? Colors.red : const Color(0xFF007B8F),
+                color: _isWishlisted ? Colors.red : const Color(0xFF6C63FF),
               ),
             ),
           ),
@@ -292,9 +290,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             _isLoadingImages
                 ? Container(
                   height: 300,
-                  child: const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF007B8F)),
-                  ),
+                    child: const Center(
+                      child: CircularProgressIndicator(color: Color(0xFF6C63FF)),
+                    ),
                 )
                 : Column(
                   children: [
@@ -398,9 +396,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   Text(
                     widget.name,
                     style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF007B8F),
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF222222),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -411,15 +409,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF007B8F).withAlpha(26),
+                      color: const Color(0xFF6C63FF).withAlpha(26),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       widget.category,
                       style: const TextStyle(
                         fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF007B8F),
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF6C63FF),
                       ),
                     ),
                   ),
@@ -427,24 +425,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   // Price and Discount
                   Row(
                     children: [
-                      Text(
-                        '₹${discountedPrice.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFF37E15),
-                        ),
-                      ),
+                      Text('Rs. ${discountedPrice.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF222222),
+                          )),
                       if (widget.discount > 0) ...[
                         const SizedBox(width: 12),
-                        Text(
-                          '₹${widget.price.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            decoration: TextDecoration.lineThrough,
-                            color: Colors.grey,
-                          ),
-                        ),
+                          Text('Rs. ${widget.price.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                decoration: TextDecoration.lineThrough,
+                                color: Colors.grey,
+                              )),
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(

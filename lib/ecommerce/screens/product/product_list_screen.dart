@@ -29,27 +29,27 @@ class ProductListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
           subCatName,
           style: const TextStyle(
-            color: Color(0xFF007B8F),
-            fontWeight: FontWeight.bold,
+            color: Color(0xFF222222),
+            fontWeight: FontWeight.w700,
             fontSize: 18,
           ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF007B8F)),
+        iconTheme: const IconThemeData(color: Color(0xFF6C63FF)),
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFF007B8F).withAlpha(26),
+            color: Color(0xFF6C63FF).withAlpha(26),
             shape: BoxShape.circle,
           ),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF007B8F)),
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF6C63FF)),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -185,8 +185,8 @@ class ProductListScreen extends StatelessWidget {
                     product.name,
                     style: const TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF007B8F),
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF222222),
                     ),
                   ),
                   subtitle: Column(
@@ -194,11 +194,11 @@ class ProductListScreen extends StatelessWidget {
                     children: [
                       const SizedBox(height: 4),
                       Text(
-                        '₹${product.price.toStringAsFixed(2)}',
+                        'Rs. ${product.price.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFF37E15),
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF222222),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -206,15 +206,15 @@ class ProductListScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF007B8F).withAlpha(26),
+                          color: Color(0xFF6C63FF).withAlpha(26),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text(
                           'View Details',
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF007B8F),
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF6C63FF),
                           ),
                         ),
                       ),
@@ -223,12 +223,12 @@ class ProductListScreen extends StatelessWidget {
                   trailing: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF007B8F).withAlpha(26),
+                      color: Color(0xFF6C63FF).withAlpha(26),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.arrow_forward_ios,
-                      color: Color(0xFF007B8F),
+                      color: Color(0xFF6C63FF),
                       size: 16,
                     ),
                   ),

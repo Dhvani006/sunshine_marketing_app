@@ -135,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
             floating: true,
             pinned: true,
             expandedHeight: isSmallScreen ? 50 : (isMediumScreen ? 60 : 70),
-            backgroundColor: const Color.fromARGB(255, 232, 236, 236),
+            backgroundColor: Colors.white,
             elevation: 0,
             actions: [],
             flexibleSpace: FlexibleSpaceBar(
@@ -163,11 +163,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(width: 8),
                         const Text(
-                          'BoliBazaar',
+                          'Sunshine Marketing',
                           style: TextStyle(
-                            color: Color(0xFF007B8F),
+                            color: AppColors.textPrimary,
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ],
@@ -186,16 +186,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                         child: CircleAvatar(
-                          backgroundColor: Colors.white,
+                          backgroundColor: AppColors.purple,
                           radius: 16,
-                          child: const Text(
-                            'A',
-                            style: TextStyle(
-                              color: Color(0xFFF37E15),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
+                          child: const Icon(Icons.person, color: Colors.white, size: 16),
                         ),
                       ),
                     ),
@@ -215,25 +208,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(25),
                   border: Border.all(color: Colors.grey[300]!, width: 1),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withAlpha(26),
-                      spreadRadius: 1,
-                      blurRadius: 3,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
+                  boxShadow: AppColors.cardShadow,
                 ),
                 child: TextField(
                   controller: _searchController,
                   onChanged: _handleSearch,
                   decoration: InputDecoration(
-                    hintText: 'Search for products...',
-                    hintStyle: TextStyle(color: Colors.grey[500], fontSize: 16),
+                    hintText: 'Search for products',
+                    hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
                     prefixIcon: Icon(
                       Icons.search,
-                      color: const Color(0xFF007B8F),
-                      size: 24,
+                      color: AppColors.textSecondary,
+                      size: 20,
                     ),
                     border: InputBorder.none,
                     enabledBorder: InputBorder.none,
@@ -332,13 +318,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         items: List.generate(images.length, (index) {
                           final imageUrl = images[index];
                           return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            margin: const EdgeInsets.symmetric(horizontal: 6),
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(16),
+                              gradient: AppColors.bannerGradient,
+                              boxShadow: AppColors.cardShadow,
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(16),
                               child:
                                   imageUrl.toLowerCase().endsWith('.svg')
                                       ? SvgPicture.network(
@@ -409,14 +396,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(images.length, (index) {
                         return Container(
-                          width: 8,
-                          height: 8,
+                          width: 6,
+                          height: 6,
                           margin: const EdgeInsets.symmetric(horizontal: 4),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: const Color(0xFF007B8F).withValues(
-                              alpha: _currentCarouselIndex == index ? 1 : 0.4,
-                            ),
+                            color: AppColors.purple
+                                .withOpacity(_currentCarouselIndex == index ? 1 : 0.3),
                           ),
                         );
                       }),
@@ -436,14 +422,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      'Shop by Category',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF007B8F),
-                      ),
-                    ),
+                    child: Text('Fresh Grocery Essentials',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        )),
                   ),
                   const SizedBox(height: 1),
                   Padding(
@@ -472,7 +456,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 4,
-                                childAspectRatio: 1.3,
+                                childAspectRatio: 1.1,
                                 crossAxisSpacing: 8,
                                 mainAxisSpacing: 12,
                               ),
@@ -515,14 +499,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Container(
-                                    width: 40,
-                                    height: 40,
+                                    width: 56,
+                                    height: 56,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color:
-                                          index % 2 == 0
-                                              ? Colors.pink
-                                              : Colors.grey[800],
+                                      color: Colors.white,
+                                      boxShadow: AppColors.cardShadow,
                                     ),
                                     child: ClipOval(
                                       child: Image.network(
@@ -534,14 +516,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                           stackTrace,
                                         ) {
                                           return Container(
-                                            color:
-                                                index % 2 == 0
-                                                    ? Colors.pink
-                                                    : Colors.grey[800],
-                                            child: Icon(
+                                            color: Colors.white,
+                                            alignment: Alignment.center,
+                                            child: const Icon(
                                               Icons.category,
-                                              color: Colors.white,
-                                              size: 18,
+                                              color: Colors.grey,
+                                              size: 20,
                                             ),
                                           );
                                         },
@@ -556,9 +536,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                     child: Text(
                                       cat.name,
                                       style: const TextStyle(
-                                        fontSize: 8,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.black87,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary,
                                       ),
                                       textAlign: TextAlign.center,
                                       maxLines: 1,
@@ -587,14 +567,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      'Featured Products',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF007B8F),
-                      ),
-                    ),
+                    child: Text('Electronics',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        )),
                   ),
                   const SizedBox(height: 1),
                   Padding(
@@ -627,7 +605,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
-                                childAspectRatio: 0.8,
+                                childAspectRatio: 0.78,
                                 crossAxisSpacing: 12,
                                 mainAxisSpacing: 12,
                               ),
@@ -754,17 +732,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                                       ?.toString() ??
                                                   '',
                                               style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
+                                                fontWeight: FontWeight.w600,
                                                 fontSize: 12,
                                               ),
                                               maxLines: 2,
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                             Text(
-                                              '₹${price.toStringAsFixed(2)}',
+                                              'Rs. ${price.toStringAsFixed(2)}',
                                               style: const TextStyle(
-                                                color: Colors.green,
-                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.textPrimary,
+                                                fontWeight: FontWeight.w700,
                                                 fontSize: 14,
                                               ),
                                             ),
