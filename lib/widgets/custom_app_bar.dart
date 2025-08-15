@@ -20,7 +20,20 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
     return AppBar(
-      title: Text(title),
+      title: ShaderMask(
+        shaderCallback: (bounds) => const LinearGradient(
+          colors: [Color(0xFFCC9900), Color(0xFFFFD700)], // Darker to lighter yellow
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ).createShader(bounds),
+        child: Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white, // Color is masked by the gradient
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
       actions: [
         if (actions != null) ...actions!,
         if (showCart)

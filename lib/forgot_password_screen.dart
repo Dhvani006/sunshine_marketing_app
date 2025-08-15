@@ -165,7 +165,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Color(0xFFB266FF)),
+          icon: ShaderMask(
+            shaderCallback: (bounds) => const LinearGradient(
+              colors: [Color(0xFFCC9900), Color(0xFFFFD700)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ).createShader(bounds),
+            child: const Icon(Icons.arrow_back, color: Colors.white),
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -315,7 +322,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         child: Ink(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [Color(0xFFFF5F6D), Color(0xFFB266FF)],
+                              colors: [Color(0xFFFFA500), Color(0xFFFFD700)],
                               begin: Alignment.centerLeft,
                               end: Alignment.centerRight,
                             ),

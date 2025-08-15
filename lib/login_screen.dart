@@ -93,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: TextStyle(
                           fontSize: 40,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFFB266FF), // purple shade
+                          color: Color(0xFFFFD700), // Darker yellow shade
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -112,7 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               text: 'BoliBazaar!',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFFB266FF),
+                                color: Color(0xFFFFD700),
                               ),
                             ),
                             const TextSpan(text: ' Please login to continue.'),
@@ -127,6 +127,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           labelText: 'Email *',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Color(0xFFFFD700), width: 2),
                           ),
                         ),
                         keyboardType: TextInputType.emailAddress,
@@ -150,6 +154,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           labelText: 'Password *',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Color(0xFFFFD700), width: 2),
                           ),
                           suffixIcon: IconButton(
                             icon: Icon(
@@ -195,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Ink(
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Color(0xFFFF5F6D), Color(0xFFB266FF)],
+                                colors: [Color(0xFFFFA500), Color(0xFFFFD700)],
                                 begin: Alignment.centerLeft,
                                 end: Alignment.centerRight,
                               ),
@@ -243,7 +251,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: const Text(
                             'Forgot Password?',
                             style: TextStyle(
-                              color: Color(0xFFB266FF),
+                              color: Color(0xFFFFD700),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -272,7 +280,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               'Register',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFFB266FF),
+                                color: Color(0xFFFFD700),
                               ),
                             ),
                           ),

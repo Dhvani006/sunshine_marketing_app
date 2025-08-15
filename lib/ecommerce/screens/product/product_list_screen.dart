@@ -31,25 +31,39 @@ class ProductListScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text(
-          subCatName,
-          style: const TextStyle(
-            color: Color(0xFF007B8F),
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+        title: ShaderMask(
+          shaderCallback: (bounds) => LinearGradient(
+            colors: [Color(0xFFCC9900), Color(0xFFFFD700)], // Darker to lighter yellow
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ).createShader(bounds),
+          child: Text(
+            subCatName,
+            style: const TextStyle(
+              color: Colors.white, // Color is masked by gradient
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
           ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF007B8F)),
+        iconTheme: const IconThemeData(color: Color(0xFFFFD700)),
         leading: Container(
           margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF007B8F).withAlpha(26),
+          decoration: const BoxDecoration(
+            color: Colors.white,
             shape: BoxShape.circle,
           ),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF007B8F)),
+            icon: ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                colors: [Color(0xFFCC9900), Color(0xFFFFD700)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ).createShader(bounds),
+              child: const Icon(Icons.arrow_back, color: Colors.white),
+            ),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -186,7 +200,7 @@ class ProductListScreen extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF007B8F),
+                      color: Color(0xFFFFD700),
                     ),
                   ),
                   subtitle: Column(
@@ -206,7 +220,7 @@ class ProductListScreen extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF007B8F).withAlpha(26),
+                          color: const Color(0xFFFFD700).withAlpha(26),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text(
@@ -214,7 +228,7 @@ class ProductListScreen extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF007B8F),
+                            color: Color(0xFFFFD700),
                           ),
                         ),
                       ),
@@ -223,12 +237,12 @@ class ProductListScreen extends StatelessWidget {
                   trailing: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF007B8F).withAlpha(26),
+                      color: const Color(0xFFFFA500).withAlpha(26),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.arrow_forward_ios,
-                      color: Color(0xFF007B8F),
+                      color: Color(0xFFFFA500),
                       size: 16,
                     ),
                   ),

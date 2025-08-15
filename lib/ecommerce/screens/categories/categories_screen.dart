@@ -143,16 +143,34 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Categories',
-          style: TextStyle(
-            color: Color(0xFF007B8F),
-            fontWeight: FontWeight.bold,
+        title: ShaderMask(
+          shaderCallback: (bounds) => LinearGradient(
+            colors: [Color(0xFFCC9900), Color(0xFFFFD700)], // Darker to lighter yellow
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ).createShader(bounds),
+          child: const Text(
+            'Categories',
+            style: TextStyle(
+              color: Colors.white, // Color is masked by gradient
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         backgroundColor: const Color.fromARGB(255, 232, 236, 236),
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF007B8F)),
+        iconTheme: const IconThemeData(color: Color(0xFFFFD700)),
+        leading: IconButton(
+          icon: ShaderMask(
+            shaderCallback: (bounds) => const LinearGradient(
+              colors: [Color(0xFFCC9900), Color(0xFFFFD700)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ).createShader(bounds),
+            child: const Icon(Icons.arrow_back, color: Colors.white),
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Row(
         children: [

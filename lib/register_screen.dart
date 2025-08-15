@@ -283,7 +283,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         onPressed: () => Navigator.pop(context),
                         child: const Text(
                           'Login',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFFFD700)),
                         ),
                       ),
                     ],

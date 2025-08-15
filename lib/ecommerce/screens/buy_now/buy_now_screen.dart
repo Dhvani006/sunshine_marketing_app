@@ -41,7 +41,21 @@ class _BuyNowScreenState extends State<BuyNowScreen> {
     final total = subtotal + gst;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Buy Now')),
+      appBar: AppBar(
+        title: ShaderMask(
+          shaderCallback: (bounds) => LinearGradient(
+            colors: [Color(0xFFCC9900), Color(0xFFFFD700)], // Darker to lighter yellow
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ).createShader(bounds),
+          child: const Text(
+            'Buy Now',
+            style: TextStyle(
+              color: Colors.white, // Color is masked by gradient
+            ),
+          ),
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -71,33 +85,53 @@ class _BuyNowScreenState extends State<BuyNowScreen> {
             const Spacer(),
             isPlacingOrder
                 ? const Center(child: CircularProgressIndicator())
-                : ElevatedButton(
-                    onPressed: () async {
-                      setState(() { isPlacingOrder = true; });
-                      final response = await http.post(
-                        Uri.parse('$baseUrl/create_order.php'),
-                        body: {
-                          'user_id': widget.userId.toString(),
-                          'ecomm_product_id': widget.productId.toString(),
-                          'quantity': quantity.toString(),
-                          'total_amount': total.toStringAsFixed(2),
-                        },
-                      );
-                      setState(() { isPlacingOrder = false; });
-                      final data = json.decode(response.body);
-                      if (data['status'] == 'success') {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Order placed successfully!')),
+                : Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFFFFA500), Color(0xFFFFD700)],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      ),
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        setState(() { isPlacingOrder = true; });
+                        final response = await http.post(
+                          Uri.parse('$baseUrl/create_order.php'),
+                          body: {
+                            'user_id': widget.userId.toString(),
+                            'ecomm_product_id': widget.productId.toString(),
+                            'quantity': quantity.toString(),
+                            'total_amount': total.toStringAsFixed(2),
+                          },
                         );
-                        Navigator.pop(context);
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(data['message'] ?? 'Order failed')),
-                        );
-                      }
-                    },
-                    child: const Text('Place Order'),
-                    style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 48)),
+                        setState(() { isPlacingOrder = false; });
+                        final data = json.decode(response.body);
+                        if (data['status'] == 'success') {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Order placed successfully!')),
+                          );
+                          Navigator.pop(context);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(data['message'] ?? 'Order failed')),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        minimumSize: const Size(double.infinity, 48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Place Order',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ),
                   ),
           ],
         ),

@@ -288,7 +288,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                     'Register',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFFB266FF),
+                          color: const Color(0xFFFFD700),
                         ),
                   ),
                   const SizedBox(height: 8),
@@ -339,7 +339,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
           height: 32,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: isActive ? const Color(0xFFB266FF) : Colors.grey[300],
+            color: isActive ? const Color(0xFFFFD700) : Colors.grey[300],
           ),
           child: Center(
             child: isActive
@@ -356,7 +356,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 : Text(
                     '${step + 1}',
                     style: TextStyle(
-                      color: Colors.grey[600],
+                      color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -368,7 +368,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: isActive ? const Color(0xFFB266FF) : Colors.grey[600],
+            color: const Color(0xFFFFD700),
             fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
           ),
         ),
@@ -380,7 +380,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
     return Container(
       height: 2,
       margin: const EdgeInsets.only(bottom: 24),
-      color: isActive ? const Color(0xFFB266FF) : Colors.grey[300],
+      color: isActive ? const Color(0xFFFFD700) : Colors.grey[300],
     );
   }
 
@@ -395,7 +395,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
             'Step 1: Enter your email address',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFFB266FF),
+                  color: const Color(0xFFFFD700),
                 ),
           ),
           const SizedBox(height: 32),
@@ -414,7 +414,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFB266FF), width: 2),
+                borderSide: const BorderSide(color: Color(0xFFFFD700), width: 2),
               ),
             ),
             keyboardType: TextInputType.emailAddress,
@@ -423,7 +423,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
           Container(
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFB266FF), Color(0xFFFF5F6D)],
+                colors: [Color(0xFFFFA500), Color(0xFFFFD700)],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               ),
@@ -474,7 +474,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 child: const Text(
                   'Login',
                   style: TextStyle(
-                    color: const Color(0xFFB266FF),
+                    color: const Color(0xFFFFD700),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -521,7 +521,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
             'Step 2: Verify your email',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFFB266FF),
+                  color: const Color(0xFFFFD700),
                 ),
           ),
           const SizedBox(height: 16),
@@ -555,7 +555,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFB266FF), width: 2),
+                borderSide: const BorderSide(color: Color(0xFFFFD700), width: 2),
               ),
             ),
             keyboardType: TextInputType.number,
@@ -566,7 +566,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
           Container(
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFB266FF), Color(0xFFFF5F6D)],
+                colors: [Color(0xFFFFA500), Color(0xFFFFD700)],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
               ),
@@ -641,7 +641,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 child: const Text(
                   'Login',
                   style: TextStyle(
-                    color: const Color(0xFFB266FF),
+                    color: const Color(0xFFFFD700),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -690,7 +690,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
               'Step 3: Complete your profile',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFFB266FF),
+                    color: const Color(0xFFFFD700),
                   ),
             ),
             const SizedBox(height: 24),
@@ -708,7 +708,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFB266FF), width: 2),
+                  borderSide: const BorderSide(color: Color(0xFFFFD700), width: 2),
                 ),
               ),
               validator: (value) {
@@ -737,7 +737,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFB266FF), width: 2),
+                  borderSide: const BorderSide(color: Color(0xFFFFD700), width: 2),
                 ),
               ),
               validator: (value) {
@@ -766,7 +766,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFB266FF), width: 2),
+                  borderSide: const BorderSide(color: Color(0xFFFFD700), width: 2),
                 ),
               ),
               validator: (value) {
@@ -790,7 +790,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFB266FF), width: 2),
+                  borderSide: const BorderSide(color: Color(0xFFFFD700), width: 2),
                 ),
               ),
               maxLines: 2,
@@ -814,7 +814,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFB266FF), width: 2),
+                  borderSide: const BorderSide(color: Color(0xFFFFD700), width: 2),
                 ),
               ),
               keyboardType: TextInputType.phone,
@@ -828,7 +828,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
             Container(
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFFB266FF), Color(0xFFFF5F6D)],
+                  colors: [Color(0xFFFFA500), Color(0xFFFFD700)],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                 ),
@@ -879,7 +879,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                   child: const Text(
                     'Login',
                     style: TextStyle(
-                      color: const Color(0xFFB266FF),
+                      color: const Color(0xFFFFD700),
                       fontWeight: FontWeight.bold,
                     ),
                   ),

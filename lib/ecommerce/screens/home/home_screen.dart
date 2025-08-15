@@ -42,6 +42,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int? _userId;
   int _selectedCategoryId = 0;
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  bool _isSearchBarFocused = false;
 
   @override
   void initState() {
@@ -50,12 +52,21 @@ class _HomeScreenState extends State<HomeScreen> {
     _carouselImagesFuture = _fetchCarouselImages();
     _masterCategoriesFuture = _fetchMasterCategories();
     _trendingProductsFuture = _fetchTrendingProducts();
+    _searchFocusNode.addListener(_onFocusChange);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.removeListener(_onFocusChange);
+    _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  void _onFocusChange() {
+    setState(() {
+      _isSearchBarFocused = _searchFocusNode.hasFocus;
+    });
   }
 
   Future<void> _loadUserId() async {
@@ -162,12 +173,19 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text(
-                          'BoliBazaar',
-                          style: TextStyle(
-                            color: Color(0xFF007B8F),
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                        ShaderMask(
+                          shaderCallback: (bounds) => LinearGradient(
+                            colors: [Color(0xFFCC9900), Color(0xFFFFD700)], // Darker to lighter yellow
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ).createShader(bounds),
+                          child: const Text(
+                            'SunShine Marketing',
+                            style: TextStyle(
+                              color: Colors.white, // Color is masked by gradient
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -217,22 +235,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   border: Border.all(color: Colors.grey[300]!, width: 1),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withAlpha(26),
-                      spreadRadius: 1,
-                      blurRadius: 3,
+                      color: _isSearchBarFocused ? Color(0xFFFFD700).withOpacity(0.5) : Colors.grey.withAlpha(26),
+                      spreadRadius: _isSearchBarFocused ? 3 : 1,
+                      blurRadius: _isSearchBarFocused ? 8 : 3,
                       offset: const Offset(0, 1),
                     ),
                   ],
                 ),
                 child: TextField(
                   controller: _searchController,
+                  focusNode: _searchFocusNode,
                   onChanged: _handleSearch,
                   decoration: InputDecoration(
                     hintText: 'Search for products...',
                     hintStyle: TextStyle(color: Colors.grey[500], fontSize: 16),
                     prefixIcon: Icon(
                       Icons.search,
-                      color: const Color(0xFF007B8F),
+                      color: Color(0xFFFFD700),
                       size: 24,
                     ),
                     border: InputBorder.none,
@@ -414,8 +433,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           margin: const EdgeInsets.symmetric(horizontal: 4),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: const Color(0xFF007B8F).withValues(
-                              alpha: _currentCarouselIndex == index ? 1 : 0.4,
+                            color: Color(0xFFFFD700).withOpacity(
+                              _currentCarouselIndex == index ? 1 : 0.4,
                             ),
                           ),
                         );
@@ -441,7 +460,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF007B8F),
+                        color: Color(0xFFFFD700),
                       ),
                     ),
                   ),
@@ -592,7 +611,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF007B8F),
+                        color: Color(0xFFFFD700),
                       ),
                     ),
                   ),

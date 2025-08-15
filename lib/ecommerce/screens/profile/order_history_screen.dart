@@ -53,25 +53,39 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text(
-          'Order History',
-          style: TextStyle(
-            color: Color(0xFF007B8F),
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+        title: ShaderMask(
+          shaderCallback: (bounds) => LinearGradient(
+            colors: [Color(0xFFCC9900), Color(0xFFFFD700)], // Darker to lighter yellow
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ).createShader(bounds),
+          child: const Text(
+            'Order History',
+            style: TextStyle(
+              color: Colors.white, // Color is masked by gradient
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
           ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF007B8F)),
+        iconTheme: const IconThemeData(color: Color(0xFFFFD700)),
         leading: Container(
           margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF007B8F).withOpacity(0.1),
+          decoration: const BoxDecoration(
+            color: Colors.white,
             shape: BoxShape.circle,
           ),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF007B8F)),
+            icon: ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                colors: [Color(0xFFCC9900), Color(0xFFFFD700)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ).createShader(bounds),
+              child: const Icon(Icons.arrow_back, color: Colors.white),
+            ),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -82,7 +96,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(
-                color: Color(0xFF007B8F),
+                color: Color(0xFFFFD700),
               ),
             );
           } else if (snapshot.hasError) {
@@ -168,7 +182,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF37E15),
+                              color: const Color(0xFFFFD700),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(
@@ -187,7 +201,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF007B8F),
+                                    color: Color(0xFFFFD700),
                                   ),
                                 ),
                                 Text(
@@ -231,7 +245,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                               'Quantity',
                               '${order['Quantity']}',
                               Icons.inventory,
-                              const Color(0xFF007B8F),
+                              const Color(0xFFFFD700),
                             ),
                           ),
                           const SizedBox(width: 12),

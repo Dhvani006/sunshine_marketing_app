@@ -133,16 +133,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Profile',
-          style: TextStyle(
-            color: Color(0xFF007B8F),
-            fontWeight: FontWeight.bold,
+        title: ShaderMask(
+          shaderCallback: (bounds) => LinearGradient(
+            colors: [Color(0xFFCC9900), Color(0xFFFFD700)], // Darker to lighter yellow
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ).createShader(bounds),
+          child: const Text(
+            'Profile',
+            style: TextStyle(
+              color: Colors.white, // Color is masked by gradient
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         backgroundColor: const Color.fromARGB(255, 232, 236, 236),
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF007B8F)),
+        iconTheme: const IconThemeData(color: Color(0xFFFFD700)),
+        leading: IconButton(
+          icon: ShaderMask(
+            shaderCallback: (bounds) => const LinearGradient(
+              colors: [Color(0xFFCC9900), Color(0xFFFFD700)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ).createShader(bounds),
+            child: const Icon(Icons.arrow_back, color: Colors.white),
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -156,10 +174,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.all(24.0),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF6B46C1), // Purple
-                          Color(0xFFF37E15), // Orange
-                        ],
+                        colors: [Color(0xFFCC9900), Color(0xFFFFD700)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -253,12 +268,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           leading: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF007B8F).withOpacity(0.1),
+                              color: const Color(0xFFFFD700).withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(
                               Icons.person_outline,
-                              color: Color(0xFF007B8F),
+                              color: Color(0xFFFFD700),
                               size: 24,
                             ),
                           ),

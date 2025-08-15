@@ -81,25 +81,39 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text(
-          'Edit Profile',
-          style: TextStyle(
-            color: Color(0xFF007B8F),
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+        title: ShaderMask(
+          shaderCallback: (bounds) => LinearGradient(
+            colors: [Color(0xFFCC9900), Color(0xFFFFD700)], // Darker to lighter yellow
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ).createShader(bounds),
+          child: const Text(
+            'Edit Profile',
+            style: TextStyle(
+              color: Colors.white, // Color is masked by gradient
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
           ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF007B8F)),
+        iconTheme: const IconThemeData(color: Color(0xFFFFD700)),
         leading: Container(
           margin: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF007B8F).withOpacity(0.1),
+          decoration: const BoxDecoration(
+            color: Colors.white,
             shape: BoxShape.circle,
           ),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF007B8F)),
+            icon: ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                colors: [Color(0xFFCC9900), Color(0xFFFFD700)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ).createShader(bounds),
+              child: const Icon(Icons.arrow_back, color: Colors.white),
+            ),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -116,7 +130,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF6A4C93), Color(0xFFF37E15)],
+                  colors: [Color(0xFFCC9900), Color(0xFFFFD700)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -149,13 +163,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     decoration: InputDecoration(
                       labelText: 'Username',
                       prefixIcon: const Icon(Icons.person_outline,
-                          color: Color(0xFF007B8F)),
+                          color: Color(0xFFFFD700)),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF007B8F)),
+                        borderSide: const BorderSide(color: Color(0xFFFFD700)),
                       ),
                     ),
                   ),
@@ -165,13 +179,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     decoration: InputDecoration(
                       labelText: 'Email',
                       prefixIcon: const Icon(Icons.email_outlined,
-                          color: Color(0xFF007B8F)),
+                          color: Color(0xFFFFD700)),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF007B8F)),
+                        borderSide: const BorderSide(color: Color(0xFFFFD700)),
                       ),
                     ),
                   ),
@@ -181,13 +195,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     decoration: InputDecoration(
                       labelText: 'Phone Number',
                       prefixIcon: const Icon(Icons.phone_outlined,
-                          color: Color(0xFF007B8F)),
+                          color: Color(0xFFFFD700)),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF007B8F)),
+                        borderSide: const BorderSide(color: Color(0xFFFFD700)),
                       ),
                     ),
                   ),
@@ -198,13 +212,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     decoration: InputDecoration(
                       labelText: 'Address',
                       prefixIcon: const Icon(Icons.location_on_outlined,
-                          color: Color(0xFF007B8F)),
+                          color: Color(0xFFFFD700)),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF007B8F)),
+                        borderSide: const BorderSide(color: Color(0xFFFFD700)),
                       ),
                     ),
                   ),
@@ -215,18 +229,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     height: 50,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF6A4C93),
-                          Color(0xFFE91E63),
-                          Color(0xFFF37E15)
-                        ],
+                        colors: [Color(0xFFFFA500), Color(0xFFFFD700)],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                       ),
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFF37E15).withOpacity(0.3),
+                          color: const Color(0xFFFFD700).withOpacity(0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
