@@ -1,46 +1,40 @@
 import 'package:flutter/material.dart';
-import 'package:sunshine_marketing_app/login_screen.dart';
-import 'package:sunshine_marketing_app/splash_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'login_screen.dart';
+import 'ecommerce/screens/cart/payment_success_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'sunshine marketing App',
+      title: 'Sunshine Marketing',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.white,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
-          elevation: 0,
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey[300]!),
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
+        primarySwatch: Colors.orange,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      routes: {'/login': (context) => const LoginScreen()},
-      home: SplashScreen(),
+      home: LoginScreen(),
+      // Add deep link handling for payment completion
+      onGenerateRoute: (settings) {
+        if (settings.name?.startsWith('/payment_complete') == true) {
+          final uri = Uri.parse(settings.name!);
+          final orderId = uri.queryParameters['order_id'];
+          final status = uri.queryParameters['status'];
+          
+          if (orderId != null) {
+            return MaterialPageRoute(
+              builder: (context) => PaymentSuccessScreen(
+                orderId: orderId,
+                paymentStatus: status ?? 'Success',
+              ),
+            );
+          }
+        }
+        return null;
+      },
     );
   }
 }

@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../../widgets/custom_app_bar.dart';
 import '../../../api_config.dart';
-import 'address_entry_screen.dart';
+import 'checkout_screen.dart';
 
 import '../categories/categories_screen.dart';
 import '../profile/profile_screen.dart';
@@ -332,8 +332,13 @@ class _CartScreenState extends State<CartScreen> {
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) =>
-                                              AddressEntryScreen(
-                                                  userId: widget.userId),
+                                              CheckoutScreen(
+                                                userId: widget.userId,
+                                                cartItems: cartItems.cast<Map<String, dynamic>>(),
+                                                subtotal: subtotal,
+                                                totalGst: totalGst,
+                                                grandTotal: grandTotal,
+                                              ),
                                         ),
                                       );
                                     },

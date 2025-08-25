@@ -1,102 +1,216 @@
 import 'package:flutter/material.dart';
+import '../../../services/cashfree_service.dart';
+import '../../../api_config.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../../../api_config.dart';
-
-import '../categories/categories_screen.dart';
-import '../cart/cart_screen.dart';
-import '../profile/profile_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'payment_success_screen.dart';
+import 'cashfree_web_checkout_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final int userId;
-  const CheckoutScreen({Key? key, required this.userId}) : super(key: key);
+  final List<Map<String, dynamic>> cartItems;
+  final double subtotal;
+  final double totalGst;
+  final double grandTotal;
+
+  const CheckoutScreen({
+    Key? key,
+    required this.userId,
+    required this.cartItems,
+    required this.subtotal,
+    required this.totalGst,
+    required this.grandTotal,
+  }) : super(key: key);
 
   @override
-  State<CheckoutScreen> createState() => _CheckoutScreenState();
+  _CheckoutScreenState createState() => _CheckoutScreenState();
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _stateController = TextEditingController();
+  final _pincodeController = TextEditingController();
+  
   bool _isLoading = false;
-  List<dynamic> cartItems = [];
-  double subtotal = 0.0;
-  double totalGst = 0.0;
-  double grandTotal = 0.0;
-  String address = '';
+  String? _orderId;
+  String? _paymentSessionId;
+  int? _localOrderId;
 
   @override
-  void initState() {
-    super.initState();
-    fetchCartAndAddress();
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    _cityController.dispose();
+    _stateController.dispose();
+    _pincodeController.dispose();
+    super.dispose();
   }
 
-  Future<void> fetchCartAndAddress() async {
-    setState(() => _isLoading = true);
+  Future<void> _createOrder() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      final cartRes = await http
-          .get(Uri.parse('$baseUrl/get_cart.php?user_id=${widget.userId}'));
-      final cartData = json.decode(cartRes.body);
-      if (cartData['status'] == 'success') {
-        cartItems = cartData['cart'];
-        subtotal = 0.0;
-        totalGst = 0.0;
-        for (final item in cartItems) {
-          final price =
-              double.tryParse(item['Ecomm_product_price'].toString()) ?? 0.0;
-          final quantity = int.tryParse(item['Quantity'].toString()) ?? 0;
-          final itemSubtotal = price * quantity;
-          subtotal += itemSubtotal;
-          totalGst += itemSubtotal * 0.18;
+      // First, create order in Cashfree
+      final cashfreeOrderResponse = await CashfreeService.createOrder(
+        orderAmount: widget.grandTotal.toString(),
+        customerName: _nameController.text,
+        customerEmail: _emailController.text,
+        customerPhone: _phoneController.text,
+        orderNote: 'Order from Sunshine Marketing App',
+      );
+
+      if (cashfreeOrderResponse['status'] == 'SUCCESS') {
+        setState(() {
+          _orderId = cashfreeOrderResponse['order_id'];
+          _paymentSessionId = cashfreeOrderResponse['payment_session_id'];
+        });
+
+        // Now create order in local database with Cashfree order ID
+        final localOrderResponse = await http.post(
+          Uri.parse('$baseUrl/create_order.php'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({
+            'user_id': widget.userId,
+            'cart_items': widget.cartItems,
+            'total_amount': widget.grandTotal,
+            'cashfree_order_id': _orderId,
+            'address': _addressController.text,
+            'city': _cityController.text,
+            'state': _stateController.text,
+            'pincode': _pincodeController.text,
+          }),
+        );
+
+        if (localOrderResponse.statusCode != 200) {
+          throw Exception('Failed to create local order with Cashfree ID');
         }
-        grandTotal = subtotal + totalGst;
-      }
-      final userRes = await http
-          .get(Uri.parse('$baseUrl/get_user.php?user_id=${widget.userId}'));
-      final userData = json.decode(userRes.body);
-      if (userData['status'] == 'success') {
-        address = userData['user']['Address'] ?? '';
+
+        final localOrderData = json.decode(localOrderResponse.body);
+        print('Local order response: $localOrderData');
+        print('Response type: ${localOrderData.runtimeType}');
+        
+        final localOrderIds = localOrderData['order_ids'] as List;
+        print('Local order IDs: $localOrderIds');
+        print('Order IDs type: ${localOrderIds.runtimeType}');
+        print('First order ID: ${localOrderIds.first} (type: ${localOrderIds.first.runtimeType})');
+        
+        // Store the first local order ID for payment processing
+        if (localOrderIds.isNotEmpty) {
+          // Ensure proper type casting - the response might be coming as dynamic
+          final firstOrderId = localOrderIds.first;
+          if (firstOrderId is int) {
+            _localOrderId = firstOrderId;
+          } else {
+            _localOrderId = int.tryParse(firstOrderId.toString()) ?? 0;
+          }
+          print('Set local order ID to: $_localOrderId (type: ${_localOrderId.runtimeType})');
+          
+          // Verify we have a valid local order ID before proceeding
+          if (_localOrderId != null && _localOrderId! > 0) {
+            // Process payment
+            await _processPayment();
+          } else {
+            throw Exception('Failed to get valid local order ID');
+          }
+        } else {
+          print('No order IDs returned from create_order.php');
+          throw Exception('No order IDs returned from create_order.php');
+        }
+      } else {
+        throw Exception('Failed to create Cashfree order: ${cashfreeOrderResponse['message']}');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('Error creating order: $e')),
       );
     } finally {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
-  Future<void> placeOrder() async {
-    setState(() => _isLoading = true);
+  Future<void> _processPayment() async {
+    if (_orderId == null || _paymentSessionId == null || _localOrderId == null) {
+      print('Missing required data for payment processing');
+      return;
+    }
+
     try {
-      for (final item in cartItems) {
-        final response = await http.post(
-          Uri.parse('$baseUrl/create_order.php'),
-          body: {
-            'user_id': widget.userId.toString(),
-            'ecomm_product_id': item['Ecomm_product_id'].toString(),
-            'quantity': item['Quantity'].toString(),
-            'total_amount': grandTotal.toString(),
-          },
-        );
-        final data = json.decode(response.body);
-        if (data['status'] != 'success') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['message'] ?? 'Order failed')),
-          );
-          setState(() => _isLoading = false);
-          return;
-        }
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Order placed successfully!')),
+      print('Processing payment with:');
+      print('- Cashfree Order ID: $_orderId');
+      print('- Payment Session ID: $_paymentSessionId');
+      print('- Local Order ID: $_localOrderId');
+      
+      // Navigate to Cashfree web checkout for real payment
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CashfreeWebCheckoutScreen(
+            orderId: _orderId!,
+            paymentSessionId: _paymentSessionId!,
+            userId: widget.userId,
+            amount: widget.grandTotal,
+            localOrderId: _localOrderId!,
+          ),
+        ),
       );
-      Navigator.popUntil(context, (route) => route.isFirst);
+      
     } catch (e) {
+      print('Exception in _processPayment: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('Payment error: $e')),
       );
-    } finally {
-      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _savePaymentDetails(int orderId, {String? transactionId}) async {
+    try {
+      if (orderId == 0) {
+        print('Invalid order ID: $orderId');
+        return;
+      }
+
+      final paymentData = {
+        'user_id': widget.userId,
+        'order_id': orderId, // Use the passed orderId parameter
+        'payment_method': 'UPI', // Map to your database enum
+        'amount': widget.grandTotal,
+        'payment_status': 'Success', // Match your database enum exactly
+        'transaction_id': transactionId ?? 'CF_${DateTime.now().millisecondsSinceEpoch}',
+      };
+      
+      print('Sending payment data: $paymentData');
+      print('Data types: user_id(${widget.userId.runtimeType}), order_id(${orderId.runtimeType}), amount(${widget.grandTotal.runtimeType})');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/save_payment.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(paymentData),
+      );
+
+      if (response.statusCode != 200) {
+        print('Failed to save payment details: ${response.statusCode}');
+        final responseBody = response.body;
+        print('Response body: $responseBody');
+      } else {
+        print('Payment details saved successfully');
+        final responseBody = response.body;
+        print('Success response: $responseBody');
+      }
+    } catch (e) {
+      print('Error saving payment details: $e');
     }
   }
 
@@ -104,164 +218,220 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [Color(0xFFCC9900), Color(0xFFFFD700)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ).createShader(bounds),
-          child: const Text(
-            'Checkout',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        backgroundColor: const Color.fromARGB(255, 232, 236, 236),
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFFFFD700)),
-        leading: IconButton(
-          icon: ShaderMask(
-            shaderCallback: (bounds) => const LinearGradient(
-              colors: [Color(0xFFCC9900), Color(0xFFFFD700)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ).createShader(bounds),
-            child: const Icon(Icons.arrow_back, color: Colors.white),
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
+        title: Text('Checkout'),
+        backgroundColor: Colors.orange,
+        foregroundColor: Colors.white,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Customer Details',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 16),
+              
+              TextFormField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  labelText: 'Full Name',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your name';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 16),
+              
+              TextFormField(
+                controller: _emailController,
+                decoration: InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your email';
+                  }
+                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    return 'Please enter a valid email';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 16),
+              
+              TextFormField(
+                controller: _phoneController,
+                decoration: InputDecoration(
+                  labelText: 'Phone Number',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.phone,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your phone number';
+                  }
+                  if (value.length < 10) {
+                    return 'Please enter a valid phone number';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 16),
+              
+              TextFormField(
+                controller: _addressController,
+                decoration: InputDecoration(
+                  labelText: 'Address',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your address';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 16),
+              
+              Row(
                 children: [
-                  Text('Delivery Address:',
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  Text(address),
-                  const SizedBox(height: 16),
-                  const Text('Order Summary:',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
                   Expanded(
-                    child: ListView.builder(
-                      itemCount: cartItems.length,
-                      itemBuilder: (context, index) {
-                        final item = cartItems[index];
-                        return ListTile(
-                          title: Text(item['Ecomm_product_name'] ?? ''),
-                          subtitle: Text('Qty: ${item['Quantity']}'),
-                          trailing: Text('₹${item['Ecomm_product_price']}'),
-                        );
+                    child: TextFormField(
+                      controller: _cityController,
+                      decoration: InputDecoration(
+                        labelText: 'City',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your city';
+                        }
+                        return null;
                       },
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text('Subtotal: ₹${subtotal.toStringAsFixed(2)}'),
-                  Text('GST (18%): ₹${totalGst.toStringAsFixed(2)}'),
-                  Text('Total: ₹${grandTotal.toStringAsFixed(2)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFFA500), Color(0xFFFFD700)],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _stateController,
+                      decoration: InputDecoration(
+                        labelText: 'State',
+                        border: OutlineInputBorder(),
                       ),
-                      borderRadius: BorderRadius.circular(25),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(51),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : placeOrder,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
-                      ),
-                      child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text(
-                              'Place Order',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your state';
+                        }
+                        return null;
+                      },
                     ),
                   ),
                 ],
               ),
-            ),
-      // Bottom Navigation
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: 3, // Cart is selected
-        selectedItemColor: const Color(0xFFF37E15),
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag),
-            label: 'Shop',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: 'Cart',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.popUntil(context, (route) => route.isFirst);
-              break;
-            case 1:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CategoriesScreen(),
+              SizedBox(height: 16),
+              
+              TextFormField(
+                controller: _pincodeController,
+                decoration: InputDecoration(
+                  labelText: 'Pincode',
+                  border: OutlineInputBorder(),
                 ),
-              );
-              break;
-            case 2:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CartScreen(userId: widget.userId),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your pincode';
+                  }
+                  if (value.length != 6) {
+                    return 'Please enter a valid 6-digit pincode';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 24),
+              
+              Text(
+                'Order Summary',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
-              );
-              break;
-            case 3:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ProfileScreen(),
+              ),
+              SizedBox(height: 16),
+              
+              Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Subtotal:'),
+                          Text('₹${widget.subtotal.toStringAsFixed(2)}'),
+                        ],
+                      ),
+                      SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('GST:'),
+                          Text('₹${widget.totalGst.toStringAsFixed(2)}'),
+                        ],
+                      ),
+                      Divider(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Total:',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            '₹${widget.grandTotal.toStringAsFixed(2)}',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              );
-              break;
-          }
-        },
+              ),
+              SizedBox(height: 24),
+              
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _createOrder,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: _isLoading
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          'Proceed to Payment',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
