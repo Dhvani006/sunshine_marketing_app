@@ -10,6 +10,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
+// Include configuration file
+require_once 'cashfree_config.php';
+
+// Validate configuration
+if (!validateCashfreeConfig()) {
+    echo json_encode([
+        'status' => 'ERROR',
+        'message' => 'Cashfree API configuration not set. Please configure your API credentials.'
+    ]);
+    exit();
+}
+
 // Only allow POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode([
@@ -45,15 +57,13 @@ if (empty($orderId) || empty($paymentSessionId) || empty($amount)) {
     exit();
 }
 
-// Cashfree API configuration
-$cfEnvironment = 'TEST'; // TEST or PRODUCTION
-$cfClientId = '127853d2ce159b71f6945456ab358721'; // Replace with your actual Client ID
-$cfClientSecret = 'cfsk_ma_test_235fd634d4746bdf682810f852162ac8_094ed789'; // Replace with your actual Client Secret
+// Cashfree API configuration from config file
+$cfEnvironment = getCashfreeEnvironment();
+$cfClientId = getCashfreeClientId();
+$cfClientSecret = getCashfreeClientSecret();
 
 // API endpoints
-$baseUrl = ($cfEnvironment === 'PRODUCTION') 
-    ? 'https://api.cashfree.com/pg' 
-    : 'https://sandbox.cashfree.com/pg';
+$baseUrl = getCashfreeBaseUrl();
 
 // For web checkout, we don't need to call additional API endpoints
 // Cashfree provides the checkout URL directly when creating the order

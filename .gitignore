@@ -43,3 +43,32 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Security and Configuration Files
+.env
+.env.local
+.env.production
+.env.test
+local_config.php
+config.local.php
+secrets.php
+*.key
+*.pem
+*.p12
+
+# Database files
+*.sql
+*.db
+*.sqlite
+
+# Log files
+*.log
+logs/
+error_log
+access_log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
