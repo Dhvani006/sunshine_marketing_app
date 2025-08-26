@@ -1,125 +1,115 @@
 <?php
+// Set proper headers first
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
-// Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
+    exit(0);
 }
 
-// Include configuration file
-require_once 'cashfree_config.php';
+// Error handling
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
 
-// Validate configuration
-if (!validateCashfreeConfig()) {
+try {
+    // Include Cashfree configuration
+    if (!file_exists('cashfree_config.php')) {
+        throw new Exception('Cashfree configuration file not found');
+    }
+    require_once 'cashfree_config.php';
+
+    // Get order ID from request
+    $orderId = $_GET['order_id'] ?? $_POST['order_id'] ?? '';
+
+    if (empty($orderId)) {
+        throw new Exception('Order ID is required');
+    }
+
+    // Verify order with Cashfree
+    $verificationResult = verifyCashfreeOrder($orderId);
+
+    // Always return 200, but include the status in the response
+    echo json_encode($verificationResult);
+
+} catch (Exception $e) {
+    // Always return JSON, never HTML
+    http_response_code(500);
     echo json_encode([
         'status' => 'ERROR',
-        'message' => 'Cashfree API configuration not set. Please configure your API credentials.'
+        'message' => 'Verification failed: ' . $e->getMessage()
     ]);
-    exit();
 }
 
-// Cashfree API configuration from config file
-$cfEnvironment = getCashfreeEnvironment();
-$cfClientId = getCashfreeClientId();
-$cfClientSecret = getCashfreeClientSecret();
-
-// API endpoints
-$baseUrl = getCashfreeBaseUrl();
-
-// Get order ID from GET or POST request
-$orderId = $_GET['order_id'] ?? $_POST['order_id'] ?? '';
-
-if (empty($orderId)) {
-    echo json_encode([
-        'status' => 'ERROR',
-        'message' => 'Order ID is required'
-    ]);
-    exit();
-}
-
-// Initialize cURL session
-$ch = curl_init();
-
-// Set cURL options for GET request
-curl_setopt($ch, CURLOPT_URL, $baseUrl . '/orders/' . $orderId);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    'Content-Type: application/json',
-    'x-client-id: ' . $cfClientId,
-    'x-client-secret: ' . $cfClientSecret,
-    'x-api-version: 2023-08-01'
-]);
-
-// Execute cURL request
-$response = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$error = curl_error($ch);
-
-curl_close($ch);
-
-// Handle response
-if ($error) {
-    echo json_encode([
-        'status' => 'ERROR',
-        'message' => 'cURL Error: ' . $error
-    ]);
-} else {
-    $responseData = json_decode($response, true);
-    
-    if ($httpCode === 200) {
+function verifyCashfreeOrder($orderId) {
+    try {
+        $baseUrl = getCashfreeBaseUrl();
+        $clientId = getCashfreeClientId();
+        $clientSecret = getCashfreeClientSecret();
+        
+        // Use correct API version
+        $apiVersion = '2023-08-01';
+        
+        $url = $baseUrl . '/orders/' . urlencode($orderId);
+        
+        $headers = [
+            'Content-Type: application/json',
+            'x-api-version: ' . $apiVersion,
+            'x-client-id: ' . $clientId,
+            'x-client-secret: ' . $clientSecret
+        ];
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_HTTPGET, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+        
+        if ($error) {
+            return ['status' => 'ERROR', 'message' => 'cURL Error: ' . $error];
+        }
+        
+        if ($httpCode !== 200) {
+            return ['status' => 'ERROR', 'message' => 'HTTP Error: ' . $httpCode . ' - ' . $response];
+        }
+        
+        $responseData = json_decode($response, true);
+        
+        if (!$responseData) {
+            return ['status' => 'ERROR', 'message' => 'Invalid response from Cashfree'];
+        }
+        
         // Extract payment information
-        $paymentStatus = 'unknown';
-        $orderStatus = $responseData['order_status'] ?? 'unknown';
-        $orderAmount = $responseData['order_amount'] ?? 0;
-        $transactionId = null;
-        $paymentMethod = null;
+        $paymentStatus = $responseData['order_status'] ?? 'UNKNOWN';
+        $isPaid = ($paymentStatus === 'PAID') || ($responseData['order_status'] === 'ACTIVE' && isset($responseData['payment_details']));
+        $transactionId = $responseData['cf_payment_id'] ?? null;
+        $paymentMethod = $responseData['payment_method'] ?? null;
         
-        // Try to get payment details from the order
-        if (isset($responseData['payment_methods']) && !empty($responseData['payment_methods'])) {
-            $paymentMethod = $responseData['payment_methods'][0] ?? 'UPI';
-        }
-        
-        // Check if order is paid by looking at order status and other indicators
-        $isPaid = false;
-        if ($orderStatus === 'ACTIVE' && isset($responseData['cf_payment_id'])) {
-            $isPaid = true;
-            $paymentStatus = 'SUCCESS';
-            $transactionId = $responseData['cf_payment_id'];
-        } elseif ($orderStatus === 'ACTIVE') {
-            $paymentStatus = 'PENDING';
-        }
-        
-        // If we have payment session details, try to get more info
-        if (isset($responseData['payment_session_id'])) {
-            // The order exists but payment might still be pending
-            if ($paymentStatus === 'unknown') {
-                $paymentStatus = 'PENDING';
-            }
-        }
-        
-        echo json_encode([
+        return [
             'status' => 'SUCCESS',
             'message' => 'Order verified successfully',
             'order_id' => $orderId,
             'payment_status' => $paymentStatus,
-            'order_status' => $orderStatus,
-            'order_amount' => $orderAmount,
-            'customer_details' => $responseData['customer_details'] ?? [],
+            'order_status' => $responseData['order_status'] ?? 'UNKNOWN',
+            'order_amount' => $responseData['order_amount'] ?? 0,
+            'customer_details' => $responseData['customer_details'] ?? null,
             'transaction_id' => $transactionId,
             'payment_method' => $paymentMethod,
             'is_paid' => $isPaid,
-            'raw_response' => $responseData // Include full response for debugging
-        ]);
-    } else {
-        echo json_encode([
-            'status' => 'ERROR',
-            'message' => 'API Error: ' . $httpCode,
-            'response' => $responseData
-        ]);
+            'raw_response' => $responseData
+        ];
+        
+    } catch (Exception $e) {
+        return ['status' => 'ERROR', 'message' => 'Verification error: ' . $e->getMessage()];
     }
 }
 ?>

@@ -1,206 +1,132 @@
 <?php
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
-// Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
+    exit(0);
 }
 
-// Database configuration
+// Include Cashfree configuration
+require_once 'cashfree_config.php';
+
+// Database connection
 $host = 'localhost';
 $dbname = 'sunshine_marketing';
 $username = 'root';
 $password = '';
 
-// Cashfree webhook secret (you'll get this from Cashfree dashboard)
-$webhookSecret = 'your_webhook_secret_here'; // Replace with your actual webhook secret
-
 try {
-    // Verify webhook signature (security)
-    $payload = file_get_contents('php://input');
-    $signature = $_SERVER['HTTP_X_WEBHOOK_SIGNATURE'] ?? '';
-    
-    // For now, we'll skip signature verification in test mode
-    // In production, you should verify the signature
-    
-    $data = json_decode($payload, true);
-    
-    if (!$data) {
-        throw new Exception('Invalid webhook payload');
-    }
-    
-    // Log webhook data for debugging
-    error_log('Cashfree Webhook Received: ' . $payload);
-    
-    // Extract important data from Cashfree webhook
-    $cashfreeOrderId = $data['orderId'] ?? null;
-    $orderAmount = $data['orderAmount'] ?? 0;
-    $orderStatus = $data['orderStatus'] ?? null;
-    $paymentStatus = $data['paymentStatus'] ?? null;
-    $transactionId = $data['transactionId'] ?? null;
-    $customerDetails = $data['customerDetails'] ?? [];
-    
-    if (!$cashfreeOrderId) {
-        throw new Exception('Missing Cashfree order ID in webhook');
-    }
-    
-    // Create database connection
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
-    // Start transaction
-    $pdo->beginTransaction();
-    
-    // Find the order in your database using cashfree_order_id
-    $stmt = $pdo->prepare("SELECT Order_id, User_id FROM orders WHERE cashfree_order_id = ?");
+} catch(PDOException $e) {
+    error_log("Webhook Database Error: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['status' => 'ERROR', 'message' => 'Database connection failed']);
+    exit;
+}
+
+// Get webhook data
+$webhookData = file_get_contents('php://input');
+error_log("Webhook raw data received: " . $webhookData);
+
+$data = json_decode($webhookData, true);
+
+if (!$data) {
+    $jsonError = json_last_error_msg();
+    error_log("Webhook Error: Invalid JSON data received. JSON Error: " . $jsonError);
+    error_log("Webhook Error: Raw data: " . $webhookData);
+    http_response_code(400);
+    echo json_encode([
+        'status' => 'ERROR', 
+        'message' => 'Invalid webhook data',
+        'json_error' => $jsonError,
+        'raw_data' => $webhookData
+    ]);
+    exit;
+}
+
+// Log webhook data for debugging
+error_log("Webhook received: " . json_encode($data));
+error_log("Webhook data keys: " . implode(', ', array_keys($data)));
+
+// Extract order information
+$cashfreeOrderId = $data['order_id'] ?? '';
+$paymentStatus = $data['order_status'] ?? '';
+$transactionId = $data['cf_payment_id'] ?? '';
+$paymentMethod = $data['payment_method'] ?? 'UPI';
+
+error_log("Extracted values - Order ID: $cashfreeOrderId, Status: $paymentStatus, Transaction ID: $transactionId");
+
+if (empty($cashfreeOrderId)) {
+    error_log("Webhook Error: Missing order_id");
+    http_response_code(400);
+    echo json_encode(['status' => 'ERROR', 'message' => 'Missing order_id']);
+    exit;
+}
+
+try {
+    // Find local order using cashfree_order_id
+    $stmt = $pdo->prepare("SELECT Order_id, User_id, Total_amount FROM orders WHERE cashfree_order_id = ?");
     $stmt->execute([$cashfreeOrderId]);
     $order = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$order) {
-        // If order not found, create a new one
-        $stmt = $pdo->prepare("
-            INSERT INTO orders (User_id, Ecomm_product_id, Quantity, Total_amount, Order_status, cashfree_order_id, address, city, state, pincode) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ");
-        
-        // Use default values for missing data
-        $stmt->execute([
-            1, // Default user ID
-            1, // Default product ID
-            1, // Default quantity
-            $orderAmount,
-            'Processing',
-            $cashfreeOrderId, // Store the Cashfree order ID
-            'Webhook Created',
-            'Unknown',
-            'Unknown',
-            '000000'
-        ]);
-        
-        $localOrderId = $pdo->lastInsertId();
-        $userId = 1; // Default user ID
-    } else {
-        $localOrderId = $order['Order_id'];
-        $userId = $order['User_id'];
+        error_log("Webhook Error: Local order not found for cashfree_order_id: " . $cashfreeOrderId);
+        http_response_code(404);
+        echo json_encode(['status' => 'ERROR', 'message' => 'Local order not found']);
+        exit;
     }
     
-    // Map Cashfree payment status to your enum values
-    $mappedPaymentStatus = 'Pending'; // Default
-    if ($paymentStatus) {
-        switch (strtolower($paymentStatus)) {
-            case 'success':
-            case 'paid':
-                $mappedPaymentStatus = 'Success';
-                break;
-            case 'failed':
-            case 'declined':
-                $mappedPaymentStatus = 'Failed';
-                break;
-            default:
-                $mappedPaymentStatus = 'Pending';
-        }
-    }
+    $localOrderId = $order['Order_id'];
+    $userId = $order['User_id'];
+    $amount = $order['Total_amount'];
     
-    // Map payment method to your enum values
-    // Since 'Cashfree' is not in your enum, we'll use 'UPI' as it's closest
-    $paymentMethod = 'UPI';
+    // Map Cashfree status to local status
+    $localPaymentStatus = 'Pending';
+    if ($paymentStatus === 'PAID') {
+        $localPaymentStatus = 'Success';
+    } elseif ($paymentStatus === 'EXPIRED' || $paymentStatus === 'FAILED') {
+        $localPaymentStatus = 'Failed';
+    }
     
     // Check if payment record already exists
-    $stmt = $pdo->prepare("SELECT Payment_id FROM payments WHERE Transaction_id = ?");
-    $stmt->execute([$transactionId]);
-    $existingPayment = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt = $pdo->prepare("SELECT Payment_id FROM payments WHERE Order_id = ?");
+    $stmt->execute([$localOrderId]);
+    $existingPayment = $stmt->fetch();
     
     if ($existingPayment) {
         // Update existing payment record
-        $stmt = $pdo->prepare("
-            UPDATE payments 
-            SET Payment_status = ?, 
-                Amount = ?, 
-                Transaction_date = CURRENT_TIMESTAMP
-            WHERE Payment_id = ?
-        ");
-        
-        $stmt->execute([
-            $mappedPaymentStatus,
-            $orderAmount,
-            $existingPayment['Payment_id']
-        ]);
-        
-        $paymentId = $existingPayment['Payment_id'];
+        $stmt = $pdo->prepare("UPDATE payments SET Payment_status = ?, Transaction_id = ?, Payment_method = ? WHERE Order_id = ?");
+        $stmt->execute([$localPaymentStatus, $transactionId, $paymentMethod, $localOrderId]);
+        error_log("Webhook: Updated existing payment for order: " . $localOrderId);
     } else {
         // Create new payment record
-        $stmt = $pdo->prepare("
-            INSERT INTO payments (User_id, Order_id, Payment_method, Amount, Payment_status, Transaction_id) 
-            VALUES (?, ?, ?, ?, ?, ?)
-        ");
+        $stmt = $pdo->prepare("INSERT INTO payments (User_id, Order_id, Payment_method, Amount, Payment_status, Transaction_id, Payment_date) VALUES (?, ?, ?, ?, ?, ?, NOW())");
+        $stmt->execute([$userId, $localOrderId, $paymentMethod, $amount, $localPaymentStatus, $transactionId]);
         
-        $stmt->execute([
-            $userId,
-            $localOrderId,
-            $paymentMethod,
-            $orderAmount,
-            $mappedPaymentStatus,
-            $transactionId
-        ]);
-        
+        // Get the payment ID
         $paymentId = $pdo->lastInsertId();
-    }
-    
-    // Update order with payment_id
-    $stmt = $pdo->prepare("UPDATE orders SET Payment_id = ? WHERE Order_id = ?");
-    $stmt->execute([$paymentId, $localOrderId]);
-    
-    // Update order status if provided
-    if ($orderStatus) {
-        $mappedOrderStatus = 'Processing'; // Default
-        switch (strtolower($orderStatus)) {
-            case 'paid':
-            case 'completed':
-                $mappedOrderStatus = 'Processing';
-                break;
-            case 'cancelled':
-                $mappedOrderStatus = 'Cancelled';
-                break;
-            default:
-                $mappedOrderStatus = 'Processing';
-        }
         
-        $stmt = $pdo->prepare("UPDATE orders SET Order_status = ? WHERE Order_id = ?");
-        $stmt->execute([$mappedOrderStatus, $localOrderId]);
+        // Update order with payment ID and status
+        $orderStatus = ($localPaymentStatus === 'Success') ? 'Completed' : 'Pending';
+        $stmt = $pdo->prepare("UPDATE orders SET Payment_id = ?, Order_status = ? WHERE Order_id = ?");
+        $stmt->execute([$paymentId, $orderStatus, $localOrderId]);
+        
+        error_log("Webhook: Created new payment record with ID: " . $paymentId . " for order: " . $localOrderId);
     }
     
-    // Commit transaction
-    $pdo->commit();
-    
-    // Return success response
-    http_response_code(200);
     echo json_encode([
         'status' => 'SUCCESS',
         'message' => 'Webhook processed successfully',
-        'local_order_id' => $localOrderId,
-        'cashfree_order_id' => $cashfreeOrderId,
-        'payment_id' => $paymentId,
-        'payment_status' => $mappedPaymentStatus,
-        'order_status' => $orderStatus
+        'order_id' => $localOrderId,
+        'payment_status' => $localPaymentStatus
     ]);
     
 } catch (Exception $e) {
-    // Rollback transaction on error
-    if (isset($pdo)) {
-        $pdo->rollBack();
-    }
-    
-    // Log error
-    error_log('Cashfree Webhook Error: ' . $e->getMessage());
-    
+    error_log("Webhook Error: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode([
-        'status' => 'ERROR',
-        'message' => 'Webhook processing failed: ' . $e->getMessage()
-    ]);
+    echo json_encode(['status' => 'ERROR', 'message' => 'Webhook processing failed']);
 }
 ?>

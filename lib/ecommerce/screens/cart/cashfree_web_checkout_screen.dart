@@ -1,24 +1,34 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import '../../../api_config.dart';
 import 'package:http/http.dart' as http;
-import 'payment_success_screen.dart';
+import 'dart:convert';
+import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
+import 'payment_success_screen.dart';
+import '../../../api_config.dart';
+import '../../../cashfree_config.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class CashfreeWebCheckoutScreen extends StatefulWidget {
   final String orderId;
-  final String paymentSessionId;
   final int userId;
   final double amount;
   final int localOrderId;
+  final List<Map<String, dynamic>> cartItems;
+  final String customerName;
+  final String customerEmail;
+  final String customerPhone;
 
   const CashfreeWebCheckoutScreen({
     Key? key,
     required this.orderId,
-    required this.paymentSessionId,
     required this.userId,
     required this.amount,
     required this.localOrderId,
+    required this.cartItems,
+    required this.customerName,
+    required this.customerEmail,
+    required this.customerPhone,
   }) : super(key: key);
 
   @override
@@ -28,74 +38,103 @@ class CashfreeWebCheckoutScreen extends StatefulWidget {
 class _CashfreeWebCheckoutScreenState extends State<CashfreeWebCheckoutScreen> {
   bool _isLoading = false;
   bool _paymentCompleted = false;
+  String? _checkoutUrl;
+  WebViewController? _webViewController;
+  String? _errorMessage;
+  
+  // Platform detection
+  bool get isAndroid => !kIsWeb && Platform.isAndroid;
+  bool get isWindows => !kIsWeb && Platform.isWindows;
 
   @override
   void initState() {
     super.initState();
-    _checkPaymentStatus();
+    _createCashfreeOrder();
   }
 
-  Future<void> _checkPaymentStatus() async {
-    try {
-      // Call Cashfree API to verify payment status
-      final response = await http.get(
-        Uri.parse('$baseUrl/cashfree_verify_order.php?order_id=${widget.orderId}'),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        print('Payment verification response: $data');
-        
-        if (data['status'] == 'SUCCESS' && data['payment_status'] == 'SUCCESS') {
-          _handlePaymentSuccess();
-        }
-      }
-    } catch (e) {
-      print('Error checking payment status: $e');
-    }
-  }
-
-  Future<void> _verifyPaymentStatus() async {
+  Future<void> _createCashfreeOrder() async {
     setState(() {
       _isLoading = true;
+      _errorMessage = null;
     });
 
     try {
-      // Call Cashfree API to verify payment status
-      final response = await http.get(
-        Uri.parse('$baseUrl/cashfree_verify_order.php?order_id=${widget.orderId}'),
+      print('=== CREATING CASHFREE ORDER ===');
+      print('Order ID: ${widget.orderId}');
+      print('Amount: ${widget.amount}');
+      print('User ID: ${widget.userId}');
+      print('Customer Name: ${widget.customerName}');
+      print('Customer Email: ${widget.customerEmail}');
+      print('Customer Phone: ${widget.customerPhone}');
+      print('================================');
+
+      // Create order with Cashfree - Include ALL required fields
+      final orderAmount = widget.amount.toStringAsFixed(2); // Ensure proper decimal format
+      
+      print('=== SENDING TO BACKEND ===');
+      print('Order amount: $orderAmount');
+      print('Order amount type: ${orderAmount.runtimeType}');
+      print('Customer details:');
+      print('  - Name: ${widget.customerName}');
+      print('  - Email: ${widget.customerEmail}');
+      print('  - Phone: ${widget.customerPhone}');
+      print('==========================');
+      
+      // Create order directly with Cashfree API
+      final response = await http.post(
+        Uri.parse('https://sandbox.cashfree.com/pg/orders'),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-id': CashfreeConfig.clientId,      // ✅ FIXED: Use clientId, not appId
+          'x-client-secret': CashfreeConfig.clientSecret,  // ✅ FIXED: Use clientSecret
+          'x-api-version': '2022-09-01', // 👈 REQUIRED header
+        },
+        body: json.encode({
+          'order_id': widget.orderId,
+          'order_amount': double.parse(orderAmount),
+          'order_currency': 'INR',
+          'customer_details': {
+            'customer_id': 'customer_${widget.userId}',
+            'customer_name': widget.customerName,
+            'customer_phone': widget.customerPhone,
+            'customer_email': widget.customerEmail,
+          },
+          'order_note': 'Order from Sunshine Marketing App',
+        }),
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('Payment verification response: $data');
-        
-        if (data['status'] == 'SUCCESS') {
-          // Check if payment was actually successful
-          final paymentStatus = data['payment_status'];
-          final isPaid = data['is_paid'] ?? false;
-          
-          print('Payment status: $paymentStatus, Is paid: $isPaid');
-          
-          if (isPaid || paymentStatus == 'SUCCESS') {
-            _handlePaymentSuccess();
-          } else if (paymentStatus == 'PENDING') {
-            // Payment is still pending, show message
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Payment is still pending. Please wait or try again later.')),
-            );
+        print('Cashfree order response: $data');
+
+        if (response.statusCode == 200) {
+          // Cashfree returns order details with payment_session_id
+          final paymentSessionId = data['payment_session_id'];
+          if (paymentSessionId != null && paymentSessionId.isNotEmpty) {
+            // Use Cashfree's hosted checkout page for PG v3
+            final paymentUrl = 'https://sandbox.cashfree.com/pg/orders/${widget.orderId}/payments?payment_session_id=$paymentSessionId';
+            
+            print('✅ Payment URL constructed: $paymentUrl');
+            setState(() {
+              _checkoutUrl = paymentUrl;
+            });
+            
+            // Start WebView checkout
+            await _startWebViewCheckout();
           } else {
-            _handlePaymentFailure('Payment verification failed: $paymentStatus');
+            throw Exception('No payment session ID received from Cashfree');
           }
         } else {
-          _handlePaymentFailure(data['message'] ?? 'Payment verification failed');
+          throw Exception(data['message'] ?? 'Failed to create Cashfree order');
         }
       } else {
-        _handlePaymentFailure('Failed to verify payment status');
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
       }
     } catch (e) {
-      print('Error verifying payment: $e');
-      _handlePaymentFailure('Error verifying payment: $e');
+      print('❌ Error creating Cashfree order: $e');
+      setState(() {
+        _errorMessage = 'Failed to create payment order: $e';
+      });
     } finally {
       setState(() {
         _isLoading = false;
@@ -103,138 +142,378 @@ class _CashfreeWebCheckoutScreenState extends State<CashfreeWebCheckoutScreen> {
     }
   }
 
-  void _handlePaymentSuccess() async {
-    print('Payment successful! Saving payment details...');
-    
-    try {
-      // Get actual payment details from Cashfree
-      final verifyResponse = await http.get(
-        Uri.parse('$baseUrl/cashfree_verify_order.php?order_id=${widget.orderId}'),
-      );
+  Future<void> _startWebViewCheckout() async {
+    if (_checkoutUrl == null) {
+      setState(() {
+        _errorMessage = 'Payment URL is missing';
+      });
+      return;
+    }
 
-      String transactionId = 'CF_${widget.orderId}'; // Default fallback
-      String paymentMethod = 'UPI'; // Default fallback
+    try {
+      print('=== STARTING WEBVIEW CHECKOUT ===');
+      print('Payment URL: $_checkoutUrl');
+      print('Platform: ${isAndroid ? "Android" : isWindows ? "Windows" : "Unknown"}');
+      print('==================================');
+
+      if (isAndroid) {
+        print('🟢 Android detected - Using WebView');
+        await _setupWebView();
+      } else if (isWindows) {
+        print('🟦 Windows detected - Opening in external browser');
+        await _openInExternalBrowser();
+      } else {
+        print('🟡 Other platform detected - Using external browser');
+        await _openInExternalBrowser();
+      }
+    } catch (e) {
+      print('❌ Error starting checkout: $e');
+      setState(() {
+        _errorMessage = 'Failed to start checkout: $e';
+      });
+    }
+  }
+
+  Future<void> _setupWebView() async {
+    try {
+      _webViewController = WebViewController()
+        ..setJavaScriptMode(JavaScriptMode.unrestricted)
+        ..setNavigationDelegate(
+          NavigationDelegate(
+            onPageStarted: (String url) {
+              print('WebView: Page started loading: $url');
+              setState(() {
+                _isLoading = true;
+              });
+            },
+            onPageFinished: (String url) {
+              print('WebView: Page finished loading: $url');
+              setState(() {
+                _isLoading = false;
+              });
+              
+              // Only detect success on specific Cashfree success URLs, not return_url
+              if (url.contains('success') || url.contains('payment_success')) {
+                print('WebView: Success URL detected, handling payment completion');
+                _handlePaymentSuccess();
+              }
+            },
+            onNavigationRequest: (NavigationRequest request) {
+              print('WebView: Navigation request to: ${request.url}');
+              
+              // Only prevent navigation on actual success URLs, not return_url
+              if (request.url.contains('success') || request.url.contains('payment_success')) {
+                print('WebView: Success navigation detected');
+                _handlePaymentSuccess();
+                return NavigationDecision.prevent;
+              }
+              
+              // Allow all other navigation including return_url
+              return NavigationDecision.navigate;
+            },
+            onWebResourceError: (WebResourceError error) {
+              print('WebView: Error loading page: ${error.description}');
+              print('Error code: ${error.errorCode}');
+              setState(() {
+                _isLoading = false;
+                _errorMessage = 'Error loading payment page: ${error.description}';
+              });
+            },
+          ),
+        );
       
-      if (verifyResponse.statusCode == 200) {
-        final verifyData = json.decode(verifyResponse.body);
-        print('Payment verification data: $verifyData');
+      print('Loading URL in WebView: $_checkoutUrl');
+      await _webViewController!.loadRequest(Uri.parse(_checkoutUrl!));
+      print('✅ WebView loadRequest completed');
+      
+    } catch (e) {
+      print('❌ Error setting up WebView: $e');
+      setState(() {
+        _errorMessage = 'Failed to setup WebView: $e';
+      });
+    }
+  }
+
+  Future<void> _openInExternalBrowser() async {
+    try {
+      final uri = Uri.parse(_checkoutUrl!);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
         
-        if (verifyData['status'] == 'SUCCESS') {
-          // Use actual transaction ID if available
-          transactionId = verifyData['transaction_id'] ?? transactionId;
-          paymentMethod = verifyData['payment_method'] ?? paymentMethod;
-          
-          // If we have raw response, try to extract more details
-          if (verifyData['raw_response'] != null) {
-            final rawResponse = verifyData['raw_response'];
-            print('Raw Cashfree response: $rawResponse');
-            
-            // Try to get more payment details from raw response
-            if (rawResponse['payment_method'] != null) {
-              paymentMethod = rawResponse['payment_method'];
-            }
-            if (rawResponse['cf_payment_id'] != null) {
-              transactionId = rawResponse['cf_payment_id'];
-            }
-          }
-          
-          print('Using actual transaction ID: $transactionId');
-          print('Using actual payment method: $paymentMethod');
-        }
+        // Show message to user
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Payment page opened in browser. Complete payment there and return to app.'),
+            duration: Duration(seconds: 5),
+          ),
+        );
+        
+        // For external browser, we'll need to manually check payment status
+        // You can add a "Check Payment Status" button here
+      } else {
+        throw Exception('Could not open payment page in browser');
+      }
+    } catch (e) {
+      print('❌ Error opening external browser: $e');
+      setState(() {
+        _errorMessage = 'Failed to open payment page: $e';
+      });
+    }
+  }
+
+  Future<void> _handlePaymentSuccess() async {
+    try {
+      print('=== PAYMENT SUCCESS DETECTED ===');
+      print('Order ID: ${widget.orderId}');
+      print('Amount: ${widget.amount}');
+      print('===============================');
+      
+      // Mark payment as completed
+      setState(() {
+        _paymentCompleted = true;
+      });
+      
+      // Add a small delay to ensure payment processing is complete
+      print('⏳ Waiting for payment processing...');
+      await Future.delayed(Duration(seconds: 3));
+      
+      // First, verify payment with Cashfree and get actual transaction data
+      final cashfreeTransactionData = await _verifyPaymentWithCashfree();
+      
+      if (cashfreeTransactionData != null) {
+        // Use Cashfree's actual transaction data
+        await _savePaymentDetailsWithCashfreeData(cashfreeTransactionData);
+      } else {
+        // Fallback: generate local transaction ID if Cashfree verification fails
+        final transactionId = 'CF_${widget.orderId}_${DateTime.now().millisecondsSinceEpoch}';
+        await _savePaymentDetails(transactionId);
       }
       
-      // Save payment details to database
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Payment successful! Redirecting to success page...'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      
+      // Navigate to success screen after delay
+      await Future.delayed(Duration(seconds: 2));
+      
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PaymentSuccessScreen(
+            orderId: widget.localOrderId.toString(),
+            amount: widget.amount,
+            userId: widget.userId,
+          ),
+        ),
+      );
+      
+    } catch (e) {
+      print('❌ Error handling payment success: $e');
+      setState(() {
+        _errorMessage = 'Error processing successful payment: $e';
+      });
+    }
+  }
+
+  Future<Map<String, dynamic>?> _verifyPaymentWithCashfree() async {
+    try {
+      print('=== VERIFYING PAYMENT WITH CASHFREE ===');
+      print('Order ID: ${widget.orderId}');
+      print('===============================');
+      
+      // Call Cashfree API to verify payment status
+      final response = await http.get(
+        Uri.parse('https://711539e5161c.ngrok-free.app/cashfree_verify_order.php?order_id=${widget.orderId}'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('Cashfree verification response: $data');
+        
+        if (data['status'] == 'SUCCESS' && data['payment_status'] == 'SUCCESS') {
+          // Extract Cashfree transaction data
+          final cashfreeData = {
+            'transaction_id': data['transaction_id'] ?? 'CF_${widget.orderId}_${DateTime.now().millisecondsSinceEpoch}',
+            'payment_method': data['payment_method'] ?? 'Cashfree',
+            'cashfree_order_id': widget.orderId,
+            'cashfree_payment_status': data['payment_status'],
+            'cashfree_response': data,
+          };
+          
+          print('✅ Cashfree verification successful');
+          print('Transaction ID: ${cashfreeData['transaction_id']}');
+          return cashfreeData;
+        } else {
+          print('⚠️ Cashfree payment not yet confirmed');
+          return null;
+        }
+      } else {
+        print('❌ Failed to verify with Cashfree: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Error verifying with Cashfree: $e');
+      return null;
+    }
+  }
+
+  Future<void> _savePaymentDetailsWithCashfreeData(Map<String, dynamic> cashfreeData) async {
+    try {
+      print('=== SAVING PAYMENT DETAILS WITH CASHFREE DATA ===');
+      print('Cashfree Transaction ID: ${cashfreeData['transaction_id']}');
+      print('Order ID: ${widget.localOrderId}');
+      print('Amount: ${widget.amount}');
+      print('==============================');
+
       final response = await http.post(
-        Uri.parse('$baseUrl/save_payment.php'),
+        Uri.parse('https://711539e5161c.ngrok-free.app/save_payment.php'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'user_id': widget.userId,
           'order_id': widget.localOrderId,
-          'payment_method': paymentMethod, // Use actual payment method
+          'payment_method': cashfreeData['payment_method'],
           'amount': widget.amount,
           'payment_status': 'Success',
-          'transaction_id': transactionId, // Use actual transaction ID
+          'transaction_id': cashfreeData['transaction_id'],
+          'cashfree_order_id': cashfreeData['cashfree_order_id'],
+          'cashfree_payment_status': cashfreeData['cashfree_payment_status'],
+          'cashfree_response': json.encode(cashfreeData['cashfree_response']),
         }),
       );
 
       if (response.statusCode == 200) {
-        print('Payment details saved successfully');
+        print('✅ Payment details saved with Cashfree data successfully');
         
-        // Navigate to success screen
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PaymentSuccessScreen(orderId: widget.localOrderId.toString()),
-          ),
-        );
+        // Now sync with Cashfree dashboard by updating order status
+        await _syncWithCashfreeDashboard(cashfreeData);
       } else {
-        print('Failed to save payment details: ${response.statusCode}');
-        _handlePaymentFailure('Failed to save payment details');
+        print('❌ Failed to save payment details: ${response.statusCode}');
+        print('Response: ${response.body}');
       }
     } catch (e) {
-      print('Error saving payment details: $e');
-      _handlePaymentFailure('Error saving payment details: $e');
+      print('❌ Error saving payment details with Cashfree data: $e');
     }
   }
 
-  void _handlePaymentFailure(String error) {
-    print('Payment failed: $error');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Payment failed: $error')),
-    );
-    
-    // Navigate back to checkout
-    Navigator.pop(context);
-  }
-
-  // The correct way to handle Cashfree web checkout
-  Future<void> _startCashfreeWebCheckout() async {
-    print('=== STARTING CASHFREE WEB CHECKOUT ===');
-    print('Order ID: ${widget.orderId}');
-    print('Payment Session ID: ${widget.paymentSessionId}');
-    print('Amount: ${widget.amount}');
-    print('=====================================');
-    
+  Future<void> _savePaymentDetails(String transactionId) async {
     try {
-      // Step 1: Create a proper web checkout session
-      final checkoutResponse = await http.post(
-        Uri.parse('$baseUrl/cashfree_web_checkout.php'),
+      print('=== SAVING PAYMENT DETAILS ===');
+      print('Transaction ID: $transactionId');
+      print('Order ID: ${widget.localOrderId}');
+      print('Amount: ${widget.amount}');
+      print('==============================');
+
+              final response = await http.post(
+          Uri.parse('https://711539e5161c.ngrok-free.app/save_payment.php'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'order_id': widget.orderId,
-          'payment_session_id': widget.paymentSessionId,
+          'user_id': widget.userId,
+          'order_id': widget.localOrderId,
+          'payment_method': 'Cashfree',
           'amount': widget.amount,
-          'return_url': '$baseUrl/cashfree_return_url.php?order_id=${widget.orderId}',
+          'payment_status': 'Success',
+          'transaction_id': transactionId,
         }),
       );
 
-      if (checkoutResponse.statusCode == 200) {
-        final checkoutData = json.decode(checkoutResponse.body);
-        print('Web checkout response: $checkoutData');
-        
-        if (checkoutData['status'] == 'SUCCESS') {
-          // Step 2: Open the checkout URL provided by Cashfree
-          final checkoutUrl = checkoutData['checkout_url'];
-          if (checkoutUrl != null && checkoutUrl.isNotEmpty) {
-            print('Opening Cashfree checkout URL: $checkoutUrl');
-            
-            if (await canLaunchUrl(Uri.parse(checkoutUrl))) {
-              await launchUrl(Uri.parse(checkoutUrl), mode: LaunchMode.externalApplication);
-            } else {
-              _handlePaymentFailure('Could not open checkout URL');
-            }
-          } else {
-            _handlePaymentFailure('No checkout URL received from Cashfree');
-          }
-        } else {
-          _handlePaymentFailure(checkoutData['message'] ?? 'Failed to create checkout session');
-        }
+      if (response.statusCode == 200) {
+        print('✅ Payment details saved successfully');
       } else {
-        _handlePaymentFailure('Failed to create checkout session: ${checkoutResponse.statusCode}');
+        print('❌ Failed to save payment details: ${response.statusCode}');
+        print('Response: ${response.body}');
       }
     } catch (e) {
-      print('Error starting web checkout: $e');
-      _handlePaymentFailure('Error starting web checkout: $e');
+      print('❌ Error saving payment details: $e');
+    }
+  }
+
+  Future<void> _syncWithCashfreeDashboard(Map<String, dynamic> cashfreeData) async {
+    try {
+      print('=== SYNCING WITH CASHFREE DASHBOARD ===');
+      print('Order ID: ${widget.orderId}');
+      print('Transaction ID: ${cashfreeData['transaction_id']}');
+      print('==============================');
+      
+      // Call Cashfree API to update order status and link transaction
+      final response = await http.post(
+        Uri.parse('https://711539e5161c.ngrok-free.app/cashfree_update_order_status.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'order_id': widget.orderId,
+          'transaction_id': cashfreeData['transaction_id'],
+          'payment_status': 'SUCCESS',
+          'amount': widget.amount,
+          'customer_details': {
+            'name': widget.customerName,
+            'email': widget.customerEmail,
+            'phone': widget.customerPhone,
+          },
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('✅ Cashfree dashboard sync successful: $data');
+      } else {
+        print('⚠️ Cashfree dashboard sync failed: ${response.statusCode}');
+        print('Response: ${response.body}');
+      }
+    } catch (e) {
+      print('❌ Error syncing with Cashfree dashboard: $e');
+    }
+  }
+
+  // Cashfree hosted checkout URL is now constructed directly in the order creation flow
+
+  Future<void> _checkPaymentStatus() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      print('=== CHECKING PAYMENT STATUS ===');
+      
+      // Call your backend to check payment status
+              final response = await http.get(
+          Uri.parse('https://711539e5161c.ngrok-free.app/cashfree_verify_order.php?order_id=${widget.orderId}'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        print('Payment status response: $data');
+        
+        if (data['status'] == 'SUCCESS' && data['payment_status'] == 'SUCCESS') {
+          await _handlePaymentSuccess();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Payment is still pending. Please complete payment in browser.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        throw Exception('Failed to check payment status');
+      }
+    } catch (e) {
+      print('❌ Error checking payment status: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error checking payment status: $e'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -242,193 +521,209 @@ class _CashfreeWebCheckoutScreenState extends State<CashfreeWebCheckoutScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Complete Payment'),
+        title: Text('Cashfree Payment'),
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: Icon(Icons.close),
-          onPressed: () {
-            // Ask user if they want to cancel payment
-            showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: Text('Cancel Payment?'),
-                content: Text('Are you sure you want to cancel this payment?'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text('No'),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Close dialog
-                      Navigator.pop(context); // Go back to checkout
-                    },
-                    child: Text('Yes, Cancel'),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: MediaQuery.of(context).size.height - 
-                      MediaQuery.of(context).padding.top - 
-                      MediaQuery.of(context).padding.bottom - 100,
-          ),
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(height: 20),
-              
-              // Cashfree Logo Placeholder
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(50),
-                ),
-                child: Icon(
-                  Icons.payment,
-                  size: 50,
-                  color: Colors.orange,
-                ),
-              ),
-              
-              SizedBox(height: 20),
-              
-              Text(
-                'Complete Your Payment',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              
-              SizedBox(height: 12),
-              
-              Text(
-                'Order ID: ${widget.orderId}',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-              ),
-              
-              SizedBox(height: 6),
-              
-              Text(
-                'Amount: ₹${widget.amount.toStringAsFixed(2)}',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-              ),
-              
-              SizedBox(height: 20),
-              
-              Text(
-                'Click the button below to start the Cashfree web checkout process. This will open the secure payment page where you can complete your payment.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Colors.grey[700],
-                ),
-              ),
-              
-              SizedBox(height: 16),
-              
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue[200]!),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'How it works:',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue[700],
+              // Order Summary
+              Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Order Summary',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 10),
-                    Text(
-                      '1. Click "Start Cashfree Web Checkout"\n'
-                      '2. Complete payment on Cashfree\'s secure page\n'
-                      '3. You\'ll be redirected back to this app\n'
-                      '4. Payment will be automatically verified\n'
-                      '5. Order will be marked as completed',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.blue[700],
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              SizedBox(height: 20),
-              
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _startCashfreeWebCheckout,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: Text(
-                    'Start Cashfree Web Checkout',
-                    style: TextStyle(fontSize: 15),
+                      SizedBox(height: 8),
+                      Text('Order ID: ${widget.orderId}'),
+                      Text('Amount: ₹${widget.amount}'),
+                    ],
                   ),
                 ),
               ),
-              
               SizedBox(height: 16),
               
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _verifyPaymentStatus,
+              // Error Message
+              if (_errorMessage != null)
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50]!,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red, size: 20),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: TextStyle(color: Colors.red[800]!),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              if (_errorMessage != null) SizedBox(height: 16),
+              
+              // Success Message
+              if (_paymentCompleted)
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50]!,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green, size: 20),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Payment completed successfully! Redirecting...',
+                          style: TextStyle(color: Colors.green[800]!),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              if (_paymentCompleted) SizedBox(height: 16),
+              
+              // How it works
+              Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'How it works:',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text('1. Payment page will open below'),
+                      Text('2. Complete payment on Cashfree'),
+                      Text('3. Return to app automatically'),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+              
+              // WebView Container (Android only)
+              if (_checkoutUrl != null && isAndroid && !_paymentCompleted)
+                Container(
+                  height: MediaQuery.of(context).size.height * 0.6, // Use 60% of screen height
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(8),
+                        color: Colors.orange,
+                        child: Row(
+                          children: [
+                            Icon(Icons.payment, color: Colors.white),
+                            SizedBox(width: 8),
+                            Text(
+                              'Cashfree Payment Page',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: _webViewController != null
+                            ? WebViewWidget(controller: _webViewController!)
+                            : Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              
+              // Manual Payment Status Check Button (for all platforms)
+              if (_checkoutUrl != null && !_paymentCompleted)
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _checkPaymentStatus,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: _isLoading
+                        ? CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                            'Check Payment Status Manually',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                  ),
+                ),
+              
+              // Manual Payment Status Check (Windows/External Browser)
+              if (!isAndroid || _checkoutUrl == null)
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _checkPaymentStatus,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 16),
                   ),
                   child: _isLoading
-                      ? CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                      ? CircularProgressIndicator(color: Colors.white)
                       : Text(
                           'Check Payment Status',
-                          style: TextStyle(fontSize: 15),
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.white,
+                          ),
                         ),
                 ),
-              ),
               
-              SizedBox(height: 16),
-              
-              Text(
-                'After completing payment on Cashfree, you will be automatically redirected back to this app. The payment will be verified and your order will be completed automatically.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey[600],
-                  fontStyle: FontStyle.italic,
+              // Retry Button
+              if (_errorMessage != null && !_paymentCompleted)
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _createCashfreeOrder,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _isLoading
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          'Retry Payment',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
-              ),
-              
-              SizedBox(height: 20),
             ],
           ),
         ),

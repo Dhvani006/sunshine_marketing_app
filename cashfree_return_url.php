@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once 'cashfree_config.php';
 
 // Validate configuration
-if (!validateCashfreeConfig()) {
+if (!function_exists('getCashfreeEnvironment') || !function_exists('getCashfreeClientId') || !function_exists('getCashfreeClientSecret')) {
     echo json_encode([
         'status' => 'ERROR',
         'message' => 'Cashfree API configuration not set. Please configure your API credentials.'

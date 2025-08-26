@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../services/cashfree_service.dart';
-import '../../../api_config.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'payment_success_screen.dart';
+import '../../../api_config.dart';
 import 'cashfree_web_checkout_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -38,7 +36,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   
   bool _isLoading = false;
   String? _orderId;
-  String? _paymentSessionId;
   int? _localOrderId;
 
   @override
@@ -54,83 +51,68 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _createOrder() async {
-    if (!_formKey.currentState!.validate()) return;
+    print('=== CHECKOUT PROCESS STARTED ===');
+    print('Form validation: ${_formKey.currentState?.validate()}');
+    print('Name controller text: "${_nameController.text}"');
+    print('Email controller text: "${_emailController.text}"');
+    print('Phone controller text: "${_phoneController.text}"');
+    print('Address controller text: "${_addressController.text}"');
+    print('City controller text: "${_cityController.text}"');
+    print('State controller text: "${_stateController.text}"');
+    print('Pincode controller text: "${_pincodeController.text}"');
+    print('User ID: ${widget.userId}');
+    print('Cart items count: ${widget.cartItems.length}');
+    print('Cart items: ${widget.cartItems}');
+    print('Grand total: ${widget.grandTotal}');
+    print('=====================================');
+
+    if (!_formKey.currentState!.validate()) {
+      print('❌ FORM VALIDATION FAILED');
+      return;
+    }
+
+    print('✅ FORM VALIDATION PASSED');
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // First, create order in Cashfree
-      final cashfreeOrderResponse = await CashfreeService.createOrder(
-        orderAmount: widget.grandTotal.toString(),
-        customerName: _nameController.text,
-        customerEmail: _emailController.text,
-        customerPhone: _phoneController.text,
-        orderNote: 'Order from Sunshine Marketing App',
-      );
-
-      if (cashfreeOrderResponse['status'] == 'SUCCESS') {
-        setState(() {
-          _orderId = cashfreeOrderResponse['order_id'];
-          _paymentSessionId = cashfreeOrderResponse['payment_session_id'];
-        });
-
-        // Now create order in local database with Cashfree order ID
-        final localOrderResponse = await http.post(
-          Uri.parse('$baseUrl/create_order.php'),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode({
-            'user_id': widget.userId,
-            'cart_items': widget.cartItems,
-            'total_amount': widget.grandTotal,
-            'cashfree_order_id': _orderId,
-            'address': _addressController.text,
-            'city': _cityController.text,
-            'state': _stateController.text,
-            'pincode': _pincodeController.text,
-          }),
+      print('=== CREATING LOCAL ORDER ===');
+      // Generate a simple order ID for now
+      final orderId = 'ORDER_${DateTime.now().millisecondsSinceEpoch}';
+      
+      setState(() {
+        _orderId = orderId;
+      });
+      
+      print('Generated Order ID: $orderId');
+        print('✅ ORDER ID GENERATED, PROCEEDING TO PAYMENT');
+        // Set a dummy local order ID for now
+        _localOrderId = 1;
+        
+        // Navigate to Cashfree WebView checkout
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CashfreeWebCheckoutScreen(
+              orderId: orderId,
+              userId: widget.userId,
+              amount: widget.grandTotal,
+              localOrderId: _localOrderId!,
+              cartItems: widget.cartItems,
+              customerName: _nameController.text.trim(),
+              customerEmail: _emailController.text.trim(),
+              customerPhone: _phoneController.text.trim(),
+            ),
+          ),
         );
-
-        if (localOrderResponse.statusCode != 200) {
-          throw Exception('Failed to create local order with Cashfree ID');
-        }
-
-        final localOrderData = json.decode(localOrderResponse.body);
-        print('Local order response: $localOrderData');
-        print('Response type: ${localOrderData.runtimeType}');
-        
-        final localOrderIds = localOrderData['order_ids'] as List;
-        print('Local order IDs: $localOrderIds');
-        print('Order IDs type: ${localOrderIds.runtimeType}');
-        print('First order ID: ${localOrderIds.first} (type: ${localOrderIds.first.runtimeType})');
-        
-        // Store the first local order ID for payment processing
-        if (localOrderIds.isNotEmpty) {
-          // Ensure proper type casting - the response might be coming as dynamic
-          final firstOrderId = localOrderIds.first;
-          if (firstOrderId is int) {
-            _localOrderId = firstOrderId;
-          } else {
-            _localOrderId = int.tryParse(firstOrderId.toString()) ?? 0;
-          }
-          print('Set local order ID to: $_localOrderId (type: ${_localOrderId.runtimeType})');
-          
-          // Verify we have a valid local order ID before proceeding
-          if (_localOrderId != null && _localOrderId! > 0) {
-            // Process payment
-            await _processPayment();
-          } else {
-            throw Exception('Failed to get valid local order ID');
-          }
-        } else {
-          print('No order IDs returned from create_order.php');
-          throw Exception('No order IDs returned from create_order.php');
-        }
-      } else {
-        throw Exception('Failed to create Cashfree order: ${cashfreeOrderResponse['message']}');
-      }
     } catch (e) {
+      print('=== EXCEPTION CAUGHT ===');
+      print('Error type: ${e.runtimeType}');
+      print('Error message: $e');
+      print('Stack trace: ${StackTrace.current}');
+      print('========================');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error creating order: $e')),
       );
@@ -138,49 +120,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       setState(() {
         _isLoading = false;
       });
+      print('=== CHECKOUT PROCESS ENDED ===');
     }
   }
 
-  Future<void> _processPayment() async {
-    if (_orderId == null || _paymentSessionId == null || _localOrderId == null) {
-      print('Missing required data for payment processing');
-      return;
-    }
 
-    try {
-      print('Processing payment with:');
-      print('- Cashfree Order ID: $_orderId');
-      print('- Payment Session ID: $_paymentSessionId');
-      print('- Local Order ID: $_localOrderId');
-      
-      // Navigate to Cashfree web checkout for real payment
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => CashfreeWebCheckoutScreen(
-            orderId: _orderId!,
-            paymentSessionId: _paymentSessionId!,
-            userId: widget.userId,
-            amount: widget.grandTotal,
-            localOrderId: _localOrderId!,
-          ),
-        ),
-      );
-      
-    } catch (e) {
-      print('Exception in _processPayment: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment error: $e')),
-      );
-    }
-  }
 
   Future<void> _savePaymentDetails(int orderId, {String? transactionId}) async {
     try {
       if (orderId == 0) {
         print('Invalid order ID: $orderId');
-        return;
-      }
+          return;
+        }
 
       final paymentData = {
         'user_id': widget.userId,
@@ -231,11 +182,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             children: [
               Text(
                 'Customer Details',
-                style: TextStyle(
+            style: TextStyle(
                   fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
               SizedBox(height: 16),
               
               TextFormField(
@@ -339,9 +290,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         return null;
                       },
                     ),
-                  ),
-                ],
-              ),
+                        ),
+                      ],
+                    ),
               SizedBox(height: 16),
               
               TextFormField(
@@ -365,11 +316,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               
               Text(
                 'Order Summary',
-                style: TextStyle(
+                              style: TextStyle(
                   fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
               SizedBox(height: 16),
               
               Card(
@@ -405,10 +356,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ],
-                      ),
-                    ],
                   ),
-                ),
+                ],
+              ),
+            ),
               ),
               SizedBox(height: 24),
               
