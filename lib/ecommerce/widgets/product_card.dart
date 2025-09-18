@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../constants/colors.dart';
 
 class ProductCard extends StatefulWidget {
   final String imageUrl;
@@ -49,9 +48,7 @@ class _ProductCardState extends State<ProductCard> {
     return Card(
       elevation: 1,
       margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,45 +59,60 @@ class _ProductCardState extends State<ProductCard> {
             child: Stack(
               children: [
                 Positioned.fill(
-                  child: widget.imageUrl.toLowerCase().endsWith('.svg') && !widget.imageUrl.startsWith('http')
-                    ? SvgPicture.asset(widget.imageUrl, fit: BoxFit.cover)
-                    : Image.network(
-                        widget.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: Colors.grey[200],
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.broken_image, size: 40, color: Colors.grey),
-                              SizedBox(height: 8),
-                              Text('Image not found', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                            ],
+                  child:
+                      widget.imageUrl.toLowerCase().endsWith('.svg') &&
+                              !widget.imageUrl.startsWith('http')
+                          ? SvgPicture.asset(widget.imageUrl, fit: BoxFit.cover)
+                          : Image.network(
+                            widget.imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder:
+                                (context, error, stackTrace) => Container(
+                                  color: Colors.grey[200],
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: const [
+                                      Icon(
+                                        Icons.broken_image,
+                                        size: 40,
+                                        color: Colors.grey,
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'Image not found',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                           ),
-                        ),
-                      ),
                 ),
                 Positioned(
                   top: 4,
                   right: 4,
                   child: IconButton.filled(
-                    onPressed: _handleToggleWishlist,
-                    icon: Icon(
-                      _isWishlisted ? Icons.favorite : Icons.favorite_border,
-                      size: 18,
-                      color: _isWishlisted ? Colors.red : Colors.grey,
-                    ),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      padding: const EdgeInsets.all(4),
-                      minimumSize: const Size(24, 24),
-                      fixedSize: const Size(28, 28),
-                    ),
-                  )
-                  .animate(target: _isWishlisted ? 1 : 0)
-                  .scaleXY(begin: 1.0, end: 1.2)
-                  .then()
-                  .scaleXY(begin: 1.2, end: 1.0),
+                        onPressed: _handleToggleWishlist,
+                        icon: Icon(
+                          _isWishlisted
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          size: 18,
+                          color: _isWishlisted ? Colors.red : Colors.grey,
+                        ),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          padding: const EdgeInsets.all(4),
+                          minimumSize: const Size(24, 24),
+                          fixedSize: const Size(28, 28),
+                        ),
+                      )
+                      .animate(target: _isWishlisted ? 1 : 0)
+                      .scaleXY(begin: 1.0, end: 1.2)
+                      .then()
+                      .scaleXY(begin: 1.2, end: 1.0),
                 ),
                 if (widget.discount > 0)
                   Positioned(
@@ -112,7 +124,7 @@ class _ProductCardState extends State<ProductCard> {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.accent,
+                        color: const Color(0xFFF37E15),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -157,7 +169,7 @@ class _ProductCardState extends State<ProductCard> {
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                              color: Color(0xFF007B8F),
                             ),
                           ),
                         ),
@@ -179,7 +191,7 @@ class _ProductCardState extends State<ProductCard> {
                       child: ElevatedButton(
                         onPressed: _isAddingToCart ? null : _handleAddToCart,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
+                          backgroundColor: const Color(0xFF007B8F),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           padding: EdgeInsets.zero,
@@ -187,21 +199,22 @@ class _ProductCardState extends State<ProductCard> {
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
-                        child: _isAddingToCart
-                            ? const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
+                        child:
+                            _isAddingToCart
+                                ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
                                   ),
+                                )
+                                : const Text(
+                                  'Add to Cart',
+                                  style: TextStyle(fontSize: 11),
                                 ),
-                              )
-                            : const Text(
-                                'Add to Cart',
-                                style: TextStyle(fontSize: 11),
-                              ),
                       ),
                     ),
                   ],
@@ -213,4 +226,4 @@ class _ProductCardState extends State<ProductCard> {
       ),
     );
   }
-} 
+}

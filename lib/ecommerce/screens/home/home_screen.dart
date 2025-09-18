@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../constants/colors.dart';
 import '../cart/cart_screen.dart';
 import '../product/product_detail_screen.dart';
 import 'package:http/http.dart' as http;
@@ -40,7 +39,6 @@ class _HomeScreenState extends State<HomeScreen> {
   late Future<List<dynamic>> _trendingProductsFuture;
   int _currentCarouselIndex = 0;
   int? _userId;
-  int _selectedCategoryId = 0;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -121,6 +119,54 @@ class _HomeScreenState extends State<HomeScreen> {
     return double.tryParse(str) ?? 0.0;
   }
 
+  Future<void> addToCart(
+    int productId,
+    String productName,
+    double price,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('user_id');
+
+      if (userId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please login to add items to cart')),
+        );
+        return;
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/add_to_cart.php'),
+        body: {
+          'user_id': userId.toString(),
+          'product_id': productId.toString(),
+          'quantity': '1',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success']) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${productName} added to cart!')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['message'] ?? 'Failed to add to cart')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to add to cart')));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
@@ -128,6 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final isMediumScreen = screenSize.height >= 700 && screenSize.height < 800;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       body: CustomScrollView(
         slivers: [
           // App Bar
@@ -135,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
             floating: true,
             pinned: true,
             expandedHeight: isSmallScreen ? 50 : (isMediumScreen ? 60 : 70),
-            backgroundColor: const Color.fromARGB(255, 232, 236, 236),
+            backgroundColor: Colors.white,
             elevation: 0,
             actions: [],
             flexibleSpace: FlexibleSpaceBar(
@@ -163,9 +210,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(width: 8),
                         const Text(
-                          'BoliBazaar',
+                          'SunShine Marketing',
                           style: TextStyle(
-                            color: Color(0xFF007B8F),
+                            color: Colors.black,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
@@ -173,32 +220,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const Spacer(),
-                    // Profile Icon
-                    Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const ProfileScreen(),
-                            ),
-                          );
-                        },
-                        child: CircleAvatar(
-                          backgroundColor: Colors.white,
-                          radius: 16,
-                          child: const Text(
-                            'A',
-                            style: TextStyle(
-                              color: Color(0xFFF37E15),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -250,202 +271,230 @@ class _HomeScreenState extends State<HomeScreen> {
 
           // Carousel Banner
           SliverToBoxAdapter(
-            child: FutureBuilder<List<String>>(
-              future: _carouselImagesFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Container(
-                    height: isSmallScreen ? 160 : 180,
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Center(child: CircularProgressIndicator()),
-                  );
-                } else if (snapshot.hasError) {
-                  return Container(
-                    height: isSmallScreen ? 160 : 180,
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 40,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Error loading carousel',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Container(
-                    height: isSmallScreen ? 160 : 180,
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.image, size: 40, color: Colors.grey),
-                          SizedBox(height: 8),
-                          Text(
-                            'No carousel images',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-                final images = snapshot.data!;
-                return Column(
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 20),
-                      child: CarouselSlider(
-                        options: CarouselOptions(
-                          height: isSmallScreen ? 160 : 180,
-                          viewportFraction: 0.9,
-                          enlargeCenterPage: true,
-                          autoPlay: true,
-                          onPageChanged: (index, reason) {
-                            setState(() {
-                              _currentCarouselIndex = index;
-                            });
-                          },
-                        ),
-                        items: List.generate(images.length, (index) {
-                          final imageUrl = images[index];
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              color: Colors.grey[200],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child:
-                                  imageUrl.toLowerCase().endsWith('.svg')
-                                      ? SvgPicture.network(
-                                        imageUrl,
-                                        fit: BoxFit.cover,
-                                        placeholderBuilder:
-                                            (context) => Container(
-                                              color: Colors.grey[200],
-                                              child: const Center(
-                                                child: Column(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.image,
-                                                      size: 40,
-                                                      color: Colors.grey,
-                                                    ),
-                                                    SizedBox(height: 8),
-                                                    Text(
-                                                      'Loading...',
-                                                      style: TextStyle(
-                                                        color: Colors.grey,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                      )
-                                      : Image.network(
-                                        imageUrl,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) =>
-                                                Container(
-                                                  color: Colors.grey[200],
-                                                  child: const Center(
-                                                    child: Column(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .center,
-                                                      children: [
-                                                        Icon(
-                                                          Icons.broken_image,
-                                                          size: 40,
-                                                          color: Colors.grey,
-                                                        ),
-                                                        SizedBox(height: 8),
-                                                        Text(
-                                                          'Image not available',
-                                                          style: TextStyle(
-                                                            color: Colors.grey,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                      ),
-                            ),
-                          );
-                        }),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(images.length, (index) {
+            child: Container(
+              color: const Color.fromARGB(255, 249, 220, 124),
+              child: Column(
+                children: [
+                  // Background above carousel
+                  Container(
+                    height: 20,
+                    color: const Color.fromARGB(255, 249, 220, 124),
+                  ),
+                  FutureBuilder<List<String>>(
+                    future: _carouselImagesFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
                         return Container(
-                          width: 8,
-                          height: 8,
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          height: isSmallScreen ? 160 : 180,
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
                           decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: const Color(0xFF007B8F).withValues(
-                              alpha: _currentCarouselIndex == index ? 1 : 0.4,
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      } else if (snapshot.hasError) {
+                        return Container(
+                          height: isSmallScreen ? 160 : 180,
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  size: 40,
+                                  color: Colors.grey,
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Error loading carousel',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ],
                             ),
                           ),
                         );
-                      }),
-                    ),
-                  ],
-                );
-              },
+                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return Container(
+                          height: isSmallScreen ? 160 : 180,
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.image, size: 40, color: Colors.grey),
+                                SizedBox(height: 8),
+                                Text(
+                                  'No carousel images',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      final images = snapshot.data!;
+                      return Column(
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 20),
+                            child: CarouselSlider(
+                              options: CarouselOptions(
+                                height: isSmallScreen ? 160 : 180,
+                                viewportFraction: 0.9,
+                                enlargeCenterPage: true,
+                                autoPlay: true,
+                                onPageChanged: (index, reason) {
+                                  setState(() {
+                                    _currentCarouselIndex = index;
+                                  });
+                                },
+                              ),
+                              items: List.generate(images.length, (index) {
+                                final imageUrl = images[index];
+                                return Container(
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    color: Colors.white,
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child:
+                                        imageUrl.toLowerCase().endsWith('.svg')
+                                            ? SvgPicture.network(
+                                              imageUrl,
+                                              fit: BoxFit.cover,
+                                              placeholderBuilder:
+                                                  (context) => Container(
+                                                    color: Colors.white,
+                                                    child: const Center(
+                                                      child: Column(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                          Icon(
+                                                            Icons.image,
+                                                            size: 40,
+                                                            color: Colors.grey,
+                                                          ),
+                                                          SizedBox(height: 8),
+                                                          Text(
+                                                            'Loading...',
+                                                            style: TextStyle(
+                                                              color:
+                                                                  Colors.grey,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                            )
+                                            : Image.network(
+                                              imageUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder:
+                                                  (
+                                                    context,
+                                                    error,
+                                                    stackTrace,
+                                                  ) => Container(
+                                                    color: Colors.white,
+                                                    child: const Center(
+                                                      child: Column(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                          Icon(
+                                                            Icons.broken_image,
+                                                            size: 40,
+                                                            color: Colors.grey,
+                                                          ),
+                                                          SizedBox(height: 8),
+                                                          Text(
+                                                            'Image not available',
+                                                            style: TextStyle(
+                                                              color:
+                                                                  Colors.grey,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                            ),
+                                  ),
+                                );
+                              }),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(images.length, (index) {
+                              return Container(
+                                width: 8,
+                                height: 8,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(0xFFF37E15).withValues(
+                                    alpha:
+                                        _currentCarouselIndex == index
+                                            ? 1
+                                            : 0.4,
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  // Background below carousel
+                  Container(
+                    height: 20,
+                    color: const Color.fromARGB(255, 249, 220, 124),
+                  ),
+                ],
+              ),
             ),
           ),
 
           // Shop by Category Section (like website)
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      'Shop by Category',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF007B8F),
-                      ),
+                  Text(
+                    'Shop by Category',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 1),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: FutureBuilder<List<Category>>(
@@ -581,18 +630,18 @@ class _HomeScreenState extends State<HomeScreen> {
           // Featured Products Section (like website)
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(horizontal: 4),
                     child: Text(
                       'Featured Products',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF007B8F),
+                        color: Colors.black,
                       ),
                     ),
                   ),
@@ -627,7 +676,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
-                                childAspectRatio: 0.8,
+                                childAspectRatio: 0.75,
                                 crossAxisSpacing: 12,
                                 mainAxisSpacing: 12,
                               ),
@@ -655,32 +704,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
                             return GestureDetector(
                               onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (context) => ProductDetailScreen(
-                                          id: int.parse(
-                                            product['Ecomm_product_id']
-                                                .toString(),
-                                          ),
-                                          imageUrl: imageUrl,
-                                          name:
-                                              product['Ecomm_product_name']
-                                                  ?.toString() ??
-                                              '',
-                                          price: price,
-                                          discount: 0,
-                                          category:
-                                              (product['Master_cat_name']
-                                                      ?.toString() ??
-                                                  'Unknown Category'),
-                                        ),
+                                addToCart(
+                                  int.parse(
+                                    product['Ecomm_product_id'].toString(),
                                   ),
+                                  product['Ecomm_product_name']?.toString() ??
+                                      '',
+                                  price,
                                 );
                               },
                               child: Card(
-                                elevation: 3,
+                                elevation: 8,
+                                shadowColor: Colors.black.withOpacity(0.2),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -689,65 +724,95 @@ class _HomeScreenState extends State<HomeScreen> {
                                   children: [
                                     // Product Image
                                     Expanded(
-                                      flex: 3,
-                                      child: Container(
-                                        width: double.infinity,
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              const BorderRadius.vertical(
-                                                top: Radius.circular(12),
-                                              ),
-                                          color: Colors.grey[200],
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              const BorderRadius.vertical(
-                                                top: Radius.circular(12),
-                                              ),
-                                          child: Image.network(
-                                            imageUrl,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (
-                                              context,
-                                              error,
-                                              stackTrace,
-                                            ) {
-                                              return Container(
-                                                color: Colors.grey[200],
-                                                child: const Column(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.shopping_bag,
-                                                      size: 30,
-                                                      color: Colors.grey,
+                                      flex: 4,
+                                      child: Stack(
+                                        children: [
+                                          Container(
+                                            width: double.infinity,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  const BorderRadius.vertical(
+                                                    top: Radius.circular(12),
+                                                  ),
+                                              color: Colors.white,
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  const BorderRadius.vertical(
+                                                    top: Radius.circular(12),
+                                                  ),
+                                              child: Image.network(
+                                                imageUrl,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (
+                                                  context,
+                                                  error,
+                                                  stackTrace,
+                                                ) {
+                                                  return Container(
+                                                    color: Colors.white,
+                                                    child: const Column(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Icon(
+                                                          Icons.shopping_bag,
+                                                          size: 30,
+                                                          color: Colors.grey,
+                                                        ),
+                                                        Text(
+                                                          'No Image',
+                                                          style: TextStyle(
+                                                            fontSize: 10,
+                                                            color: Colors.grey,
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
-                                                    Text(
-                                                      'No Image',
-                                                      style: TextStyle(
-                                                        fontSize: 10,
-                                                        color: Colors.grey,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
-                                            },
+                                                  );
+                                                },
+                                              ),
+                                            ),
                                           ),
-                                        ),
+                                          // In Stock Badge
+                                          Positioned(
+                                            top: 8,
+                                            right: 8,
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.green,
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: const Text(
+                                                'In Stock',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 8,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                     // Product Details
                                     Expanded(
-                                      flex: 2,
+                                      flex: 3,
                                       child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
+                                        padding: const EdgeInsets.all(6.0),
                                         child: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           mainAxisAlignment:
-                                              MainAxisAlignment.spaceEvenly,
+                                              MainAxisAlignment.start,
                                           children: [
                                             Text(
                                               product['Ecomm_product_name']
@@ -755,18 +820,66 @@ class _HomeScreenState extends State<HomeScreen> {
                                                   '',
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
-                                                fontSize: 12,
+                                                fontSize: 11,
                                               ),
-                                              maxLines: 2,
+                                              maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                             ),
+                                            const SizedBox(height: 4),
                                             Text(
-                                              '₹${price.toStringAsFixed(2)}',
+                                              'Rs. ${price.toStringAsFixed(2)}',
                                               style: const TextStyle(
-                                                color: Colors.green,
+                                                color: Color(0xFFF37E15),
                                                 fontWeight: FontWeight.bold,
-                                                fontSize: 14,
+                                                fontSize: 11,
                                               ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.spaceEvenly,
+                                              children: [
+                                                Container(
+                                                  width: 28,
+                                                  height: 28,
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(
+                                                      0xFFF37E15,
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          6,
+                                                        ),
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.shopping_cart,
+                                                    color: Colors.white,
+                                                    size: 14,
+                                                  ),
+                                                ),
+                                                Container(
+                                                  width: 28,
+                                                  height: 28,
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          6,
+                                                        ),
+                                                    border: Border.all(
+                                                      color: const Color(
+                                                        0xFFF37E15,
+                                                      ),
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.visibility,
+                                                    color: Color(0xFFF37E15),
+                                                    size: 14,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ],
                                         ),
@@ -795,16 +908,22 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedItemColor: const Color(0xFFF37E15),
         unselectedItemColor: Colors.grey,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag),
+            icon: Icon(Icons.home_outlined),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.store_outlined),
             label: 'Shop',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
+            icon: Icon(Icons.shopping_cart_outlined),
             label: 'Cart',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
         ],
         onTap: (index) {
           switch (index) {

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../api_config.dart';
+import '../../constants/colors.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -24,13 +25,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    usernameController =
-        TextEditingController(text: widget.userData['Username']);
+    usernameController = TextEditingController(
+      text: widget.userData['Username'],
+    );
     emailController = TextEditingController(text: widget.userData['Email']);
-    addressController =
-        TextEditingController(text: widget.userData['Address'] ?? '');
-    phoneController =
-        TextEditingController(text: widget.userData['Phone_number'] ?? '');
+    addressController = TextEditingController(
+      text: widget.userData['Address'] ?? '',
+    );
+    phoneController = TextEditingController(
+      text: widget.userData['Phone_number'] ?? '',
+    );
   }
 
   Future<void> updateProfile() async {
@@ -57,9 +61,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     setState(() => isLoading = false);
 
     final data = json.decode(response.body);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(data['message'])),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(data['message'])));
 
     if (data['success']) {
       final prefs = await SharedPreferences.getInstance();
@@ -79,27 +83,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
           'Edit Profile',
           style: TextStyle(
-            color: Color(0xFF007B8F),
-            fontWeight: FontWeight.bold,
+            color: Color(0xFF222222),
+            fontWeight: FontWeight.w700,
             fontSize: 18,
           ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF007B8F)),
+        iconTheme: const IconThemeData(color: Color(0xFFF37E15)),
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFF007B8F).withOpacity(0.1),
+            color: const Color(0xFFF37E15).withOpacity(0.1),
             shape: BoxShape.circle,
           ),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF007B8F)),
+            icon: const Icon(Icons.arrow_back, color: Color(0xFFF37E15)),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -113,19 +117,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             Container(
               width: 120,
               height: 120,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF6A4C93), Color(0xFFF37E15)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                gradient: AppColors.ctaGradient,
               ),
-              child: const Icon(
-                Icons.person,
-                size: 60,
-                color: Colors.white,
-              ),
+              child: const Icon(Icons.person, size: 60, color: Colors.white),
             ),
             const SizedBox(height: 30),
             // Form Fields
@@ -148,14 +144,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     controller: usernameController,
                     decoration: InputDecoration(
                       labelText: 'Username',
-                      prefixIcon: const Icon(Icons.person_outline,
-                          color: Color(0xFF007B8F)),
+                      prefixIcon: const Icon(
+                        Icons.person_outline,
+                        color: Color(0xFFF37E15),
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF007B8F)),
+                        borderSide: const BorderSide(color: Color(0xFFF37E15)),
                       ),
                     ),
                   ),
@@ -164,14 +162,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     controller: emailController,
                     decoration: InputDecoration(
                       labelText: 'Email',
-                      prefixIcon: const Icon(Icons.email_outlined,
-                          color: Color(0xFF007B8F)),
+                      prefixIcon: const Icon(
+                        Icons.email_outlined,
+                        color: Color(0xFFF37E15),
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF007B8F)),
+                        borderSide: const BorderSide(color: Color(0xFFF37E15)),
                       ),
                     ),
                   ),
@@ -180,14 +180,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     controller: phoneController,
                     decoration: InputDecoration(
                       labelText: 'Phone Number',
-                      prefixIcon: const Icon(Icons.phone_outlined,
-                          color: Color(0xFF007B8F)),
+                      prefixIcon: const Icon(
+                        Icons.phone_outlined,
+                        color: Color(0xFFF37E15),
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF007B8F)),
+                        borderSide: const BorderSide(color: Color(0xFFF37E15)),
                       ),
                     ),
                   ),
@@ -197,14 +199,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     maxLines: 3,
                     decoration: InputDecoration(
                       labelText: 'Address',
-                      prefixIcon: const Icon(Icons.location_on_outlined,
-                          color: Color(0xFF007B8F)),
+                      prefixIcon: const Icon(
+                        Icons.location_on_outlined,
+                        color: Color(0xFFF37E15),
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF007B8F)),
+                        borderSide: const BorderSide(color: Color(0xFFF37E15)),
                       ),
                     ),
                   ),
@@ -212,13 +216,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   // Save Button with Linear Gradient (matching the image)
                   Container(
                     width: double.infinity,
-                    height: 50,
+                    height: 55,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [
-                          Color(0xFF6A4C93),
-                          Color(0xFFE91E63),
-                          Color(0xFFF37E15)
+                          Color(0xFFF37E15), // Orange
+                          Color(0xFFE65100), // Darker Orange
                         ],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
@@ -226,47 +229,52 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFF37E15).withOpacity(0.3),
+                          color: Colors.black.withOpacity(0.1),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    child: isLoading
-                        ? const Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                            ),
-                          )
-                        : ElevatedButton(
-                            onPressed: updateProfile,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                    child:
+                        isLoading
+                            ? const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            )
+                            : ElevatedButton(
+                              onPressed: updateProfile,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.flash_on,
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'SAVE CHANGES',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.flash_on,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                                SizedBox(width: 8),
-                                Text(
-                                  'SAVE CHANGES',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                   ),
                 ],
               ),

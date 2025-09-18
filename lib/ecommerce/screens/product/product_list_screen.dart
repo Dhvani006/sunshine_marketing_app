@@ -9,13 +9,16 @@ class ProductListScreen extends StatelessWidget {
   final int subCatId;
   final String subCatName;
 
-  const ProductListScreen(
-      {Key? key, required this.subCatId, required this.subCatName})
-      : super(key: key);
+  const ProductListScreen({
+    Key? key,
+    required this.subCatId,
+    required this.subCatName,
+  }) : super(key: key);
 
   Future<List<Product>> fetchProducts() async {
-    final response = await http.get(Uri.parse(
-        '$baseUrl/get_products_by_category.php?sub_cat_id=$subCatId'));
+    final response = await http.get(
+      Uri.parse('$baseUrl/get_products_by_category.php?sub_cat_id=$subCatId'),
+    );
     final data = json.decode(response.body);
     if (data['success'] == true) {
       return (data['products'] as List)
@@ -34,22 +37,23 @@ class ProductListScreen extends StatelessWidget {
         title: Text(
           subCatName,
           style: const TextStyle(
-            color: Color(0xFF007B8F),
+            color: Colors.black,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF007B8F)),
+        iconTheme: const IconThemeData(color: Color(0xFFF37E15)),
+        shadowColor: const Color(0xFFF37E15).withOpacity(0.3),
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFF007B8F).withAlpha(26),
+            color: const Color(0xFFF37E15).withAlpha(26),
             shape: BoxShape.circle,
           ),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF007B8F)),
+            icon: const Icon(Icons.arrow_back, color: Color(0xFFF37E15)),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -59,27 +63,18 @@ class ProductListScreen extends StatelessWidget {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF007B8F),
-              ),
+              child: CircularProgressIndicator(color: Color(0xFF007B8F)),
             );
           } else if (snapshot.hasError) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: Colors.red[300],
-                  ),
+                  Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
                   const SizedBox(height: 16),
                   Text(
                     'Error: ${snapshot.error}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.red,
-                    ),
+                    style: const TextStyle(fontSize: 16, color: Colors.red),
                   ),
                 ],
               ),
@@ -106,10 +101,7 @@ class ProductListScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   const Text(
                     'Check back later for new products!',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                 ],
               ),
@@ -186,7 +178,7 @@ class ProductListScreen extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF007B8F),
+                      color: Colors.black,
                     ),
                   ),
                   subtitle: Column(
@@ -196,7 +188,7 @@ class ProductListScreen extends StatelessWidget {
                       Text(
                         '₹${product.price.toStringAsFixed(2)}',
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFFF37E15),
                         ),
@@ -204,17 +196,26 @@ class ProductListScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF007B8F).withAlpha(26),
+                          color: Colors.red.withAlpha(26),
                           borderRadius: BorderRadius.circular(8),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.red.withOpacity(0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: const Text(
                           'View Details',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF007B8F),
+                            color: Colors.red,
                           ),
                         ),
                       ),
@@ -223,12 +224,12 @@ class ProductListScreen extends StatelessWidget {
                   trailing: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF007B8F).withAlpha(26),
+                      color: const Color(0xFFF37E15).withAlpha(26),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.arrow_forward_ios,
-                      color: Color(0xFF007B8F),
+                      color: Color(0xFFF37E15),
                       size: 16,
                     ),
                   ),
@@ -236,14 +237,15 @@ class ProductListScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ProductDetailScreen(
-                          id: product.id, // Pass the id here
-                          imageUrl: product.image,
-                          name: product.name,
-                          price: product.price,
-                          discount: 0, // Pass discount if you have it
-                          category: subCatName,
-                        ),
+                        builder:
+                            (context) => ProductDetailScreen(
+                              id: product.id, // Pass the id here
+                              imageUrl: product.image,
+                              name: product.name,
+                              price: product.price,
+                              discount: 0, // Pass discount if you have it
+                              category: subCatName,
+                            ),
                       ),
                     );
                   },

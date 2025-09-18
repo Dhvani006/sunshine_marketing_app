@@ -18,18 +18,18 @@ class OTPRegistrationScreen extends StatefulWidget {
 class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
   final PageController _pageController = PageController();
   int _currentStep = 0;
-  
+
   // Step 1: Email
   final _emailController = TextEditingController();
   bool _isEmailLoading = false;
-  
+
   // Step 2: OTP
   final _otpController = TextEditingController();
   bool _isOtpLoading = false;
   Timer? _timer;
   int _countdown = 300; // 5 minutes
   String _verifiedEmail = '';
-  
+
   // Step 3: Profile
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
@@ -58,7 +58,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
   void _startCountdown() {
     _timer?.cancel();
     setState(() => _countdown = 300);
-    
+
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_countdown > 0) {
         setState(() => _countdown--);
@@ -76,7 +76,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
 
   Future<void> _sendOTP() async {
     print('🔵 DEBUG: _sendOTP() called');
-    
+
     if (_emailController.text.isEmpty) {
       print('❌ DEBUG: Email is empty');
       _showSnackBar('Please enter your email address');
@@ -95,11 +95,11 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
     try {
       final url = '$baseUrl/send_registration_otp.php';
       final requestBody = jsonEncode({'email': _emailController.text});
-      
+
       print('🌐 DEBUG: Making HTTP request to: $url');
       print('📤 DEBUG: Request body: $requestBody');
       print('📋 DEBUG: Base URL from config: $baseUrl');
-      
+
       final response = await http.post(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
@@ -112,7 +112,9 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
 
       if (response.statusCode != 200) {
         print('❌ DEBUG: HTTP error - Status code: ${response.statusCode}');
-        _showSnackBar('Server error (${response.statusCode}). Please try again.');
+        _showSnackBar(
+          'Server error (${response.statusCode}). Please try again.',
+        );
         return;
       }
 
@@ -130,7 +132,10 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
         );
-        _showSnackBar('OTP sent successfully! Please check your email.', isSuccess: true);
+        _showSnackBar(
+          'OTP sent successfully! Please check your email.',
+          isSuccess: true,
+        );
       } else {
         print('❌ DEBUG: Server returned error: ${data['message']}');
         _showSnackBar(data['message'] ?? 'Failed to send OTP');
@@ -166,10 +171,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
       final response = await http.post(
         Uri.parse('$baseUrl/verify_registration_otp.php'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': _verifiedEmail,
-          'otp': _otpController.text,
-        }),
+        body: jsonEncode({'email': _verifiedEmail, 'otp': _otpController.text}),
       );
 
       final data = json.decode(response.body);
@@ -203,7 +205,7 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
       print('🔵 DEBUG: Email: $_verifiedEmail');
       print('🔵 DEBUG: Address: ${_addressController.text}');
       print('🔵 DEBUG: Phone: ${_phoneController.text}');
-      
+
       final response = await http.post(
         Uri.parse('$baseUrl/complete_registration.php'),
         headers: {'Content-Type': 'application/json'},
@@ -224,17 +226,17 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
 
       if (data['status'] == 'success') {
         print('🔵 DEBUG: Registration successful, user_id: ${data['user_id']}');
-        
+
         // Save authentication data and navigate to home
         await AuthService.saveAuthData(
           userId: int.parse(data['user_id'].toString()),
           email: _verifiedEmail,
           username: _usernameController.text,
         );
-        
+
         print('🔵 DEBUG: Auth data saved, navigating to home...');
         _showSnackBar('Registration completed successfully!', isSuccess: true);
-        
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -287,16 +289,16 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                   Text(
                     'Register',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFFB266FF),
-                        ),
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFFB266FF),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Create your Sunshine Marketing account to start shopping!',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
@@ -307,7 +309,11 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                       Expanded(child: _buildStepConnector(_currentStep > 0)),
                       _buildStepIndicator(1, 'Verify OTP', _currentStep >= 1),
                       Expanded(child: _buildStepConnector(_currentStep > 1)),
-                      _buildStepIndicator(2, 'Complete Profile', _currentStep >= 2),
+                      _buildStepIndicator(
+                        2,
+                        'Complete Profile',
+                        _currentStep >= 2,
+                      ),
                     ],
                   ),
                 ],
@@ -342,25 +348,26 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
             color: isActive ? const Color(0xFFB266FF) : Colors.grey[300],
           ),
           child: Center(
-            child: isActive
-                ? (_currentStep > step
-                    ? const Icon(Icons.check, color: Colors.white, size: 16)
+            child:
+                isActive
+                    ? (_currentStep > step
+                        ? const Icon(Icons.check, color: Colors.white, size: 16)
+                        : Text(
+                          '${step + 1}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ))
                     : Text(
-                        '${step + 1}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ))
-                : Text(
-                    '${step + 1}',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      '${step + 1}',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
           ),
         ),
         const SizedBox(height: 8),
@@ -394,9 +401,9 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
           Text(
             'Step 1: Enter your email address',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFFB266FF),
-                ),
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFFB266FF),
+            ),
           ),
           const SizedBox(height: 32),
           TextFormField(
@@ -414,7 +421,10 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFB266FF), width: 2),
+                borderSide: const BorderSide(
+                  color: Color(0xFFB266FF),
+                  width: 2,
+                ),
               ),
             ),
             keyboardType: TextInputType.emailAddress,
@@ -439,23 +449,26 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: _isEmailLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              child:
+                  _isEmailLoading
+                      ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
+                      : const Text(
+                        'SEND OTP',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
-                    )
-                  : const Text(
-                      'SEND OTP',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
             ),
           ),
           const SizedBox(height: 24),
@@ -467,10 +480,13 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 style: TextStyle(color: Colors.grey[600]),
               ),
               GestureDetector(
-                onTap: () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                ),
+                onTap:
+                    () => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
+                    ),
                 child: const Text(
                   'Login',
                   style: TextStyle(
@@ -520,24 +536,24 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
           Text(
             'Step 2: Verify your email',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFFB266FF),
-                ),
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFFB266FF),
+            ),
           ),
           const SizedBox(height: 16),
           Text(
             'We\'ve sent a 6-digit OTP to $_verifiedEmail',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
           ),
           const SizedBox(height: 8),
           Text(
             'OTP expires in: ${_formatCountdown()}',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: _countdown > 60 ? Colors.orange[600] : Colors.red[600],
-                  fontWeight: FontWeight.w600,
-                ),
+              color: _countdown > 60 ? Colors.orange[600] : Colors.red[600],
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 24),
           TextFormField(
@@ -555,7 +571,10 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Color(0xFFB266FF), width: 2),
+                borderSide: const BorderSide(
+                  color: Color(0xFFB266FF),
+                  width: 2,
+                ),
               ),
             ),
             keyboardType: TextInputType.number,
@@ -582,46 +601,60 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: _isOtpLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              child:
+                  _isOtpLoading
+                      ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
+                      : const Text(
+                        'VERIFY OTP',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
-                    )
-                  : const Text(
-                      'VERIFY OTP',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
             ),
           ),
           const SizedBox(height: 16),
           OutlinedButton(
-            onPressed: _countdown == 0 ? () {
-              _sendOTP();
-              _otpController.clear();
-            } : null,
+            onPressed:
+                _countdown == 0
+                    ? () {
+                      _sendOTP();
+                      _otpController.clear();
+                    }
+                    : null,
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
               side: BorderSide(
-                color: _countdown == 0 ? const Color(0xFFB266FF) : Colors.grey[300]!,
+                color:
+                    _countdown == 0
+                        ? const Color(0xFFB266FF)
+                        : Colors.grey[300]!,
               ),
             ),
             child: Text(
-              _countdown == 0 ? 'RESEND IN 4:57' : 'RESEND IN ${_formatCountdown()}',
+              _countdown == 0
+                  ? 'RESEND IN 4:57'
+                  : 'RESEND IN ${_formatCountdown()}',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: _countdown == 0 ? const Color(0xFFB266FF) : Colors.grey[500],
+                color:
+                    _countdown == 0
+                        ? const Color(0xFFB266FF)
+                        : Colors.grey[500],
               ),
             ),
           ),
@@ -634,10 +667,13 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 style: TextStyle(color: Colors.grey[600]),
               ),
               GestureDetector(
-                onTap: () => Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                ),
+                onTap:
+                    () => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(),
+                      ),
+                    ),
                 child: const Text(
                   'Login',
                   style: TextStyle(
@@ -689,9 +725,9 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
             Text(
               'Step 3: Complete your profile',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFFB266FF),
-                  ),
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFFB266FF),
+              ),
             ),
             const SizedBox(height: 24),
             // Username
@@ -701,19 +737,26 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 labelText: 'Username *',
                 hintText: 'Choose a username',
                 prefixIcon: const Icon(Icons.person_outline),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: Colors.grey[300]!),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFB266FF), width: 2),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFB266FF),
+                    width: 2,
+                  ),
                 ),
               ),
               validator: (value) {
-                if (value == null || value.isEmpty) return 'Username is required';
-                if (value.length < 3) return 'Username must be at least 3 characters';
+                if (value == null || value.isEmpty)
+                  return 'Username is required';
+                if (value.length < 3)
+                  return 'Username must be at least 3 characters';
                 return null;
               },
             ),
@@ -727,22 +770,33 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 hintText: 'Create a password',
                 prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed:
+                      () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: Colors.grey[300]!),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFB266FF), width: 2),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFB266FF),
+                    width: 2,
+                  ),
                 ),
               ),
               validator: (value) {
-                if (value == null || value.isEmpty) return 'Password is required';
-                if (value.length < 6) return 'Password must be at least 6 characters';
+                if (value == null || value.isEmpty)
+                  return 'Password is required';
+                if (value.length < 6)
+                  return 'Password must be at least 6 characters';
                 return null;
               },
             ),
@@ -756,22 +810,37 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 hintText: 'Confirm your password',
                 prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
-                  onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                  icon: Icon(
+                    _obscureConfirmPassword
+                        ? Icons.visibility
+                        : Icons.visibility_off,
+                  ),
+                  onPressed:
+                      () => setState(
+                        () =>
+                            _obscureConfirmPassword = !_obscureConfirmPassword,
+                      ),
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: Colors.grey[300]!),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFB266FF), width: 2),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFB266FF),
+                    width: 2,
+                  ),
                 ),
               ),
               validator: (value) {
-                if (value == null || value.isEmpty) return 'Please confirm your password';
-                if (value != _passwordController.text) return 'Passwords do not match';
+                if (value == null || value.isEmpty)
+                  return 'Please confirm your password';
+                if (value != _passwordController.text)
+                  return 'Passwords do not match';
                 return null;
               },
             ),
@@ -783,19 +852,25 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 labelText: 'Address *',
                 hintText: 'Enter your address',
                 prefixIcon: const Icon(Icons.location_on_outlined),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: Colors.grey[300]!),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFB266FF), width: 2),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFB266FF),
+                    width: 2,
+                  ),
                 ),
               ),
               maxLines: 2,
               validator: (value) {
-                if (value == null || value.isEmpty) return 'Address is required';
+                if (value == null || value.isEmpty)
+                  return 'Address is required';
                 return null;
               },
             ),
@@ -807,20 +882,27 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 labelText: 'Phone Number *',
                 hintText: 'Enter your phone number',
                 prefixIcon: const Icon(Icons.phone_outlined),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: Colors.grey[300]!),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFB266FF), width: 2),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFB266FF),
+                    width: 2,
+                  ),
                 ),
               ),
               keyboardType: TextInputType.phone,
               validator: (value) {
-                if (value == null || value.isEmpty) return 'Phone number is required';
-                if (value.length < 10) return 'Please enter a valid phone number';
+                if (value == null || value.isEmpty)
+                  return 'Phone number is required';
+                if (value.length < 10)
+                  return 'Please enter a valid phone number';
                 return null;
               },
             ),
@@ -835,7 +917,8 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: ElevatedButton(
-                onPressed: _isRegistrationLoading ? null : _completeRegistration,
+                onPressed:
+                    _isRegistrationLoading ? null : _completeRegistration,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
@@ -844,23 +927,26 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: _isRegistrationLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                child:
+                    _isRegistrationLoading
+                        ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                        : const Text(
+                          'COMPLETE REGISTRATION',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
-                      )
-                    : const Text(
-                        'COMPLETE REGISTRATION',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
               ),
             ),
             const SizedBox(height: 24),
@@ -872,10 +958,13 @@ class _OTPRegistrationScreenState extends State<OTPRegistrationScreen> {
                   style: TextStyle(color: Colors.grey[600]),
                 ),
                 GestureDetector(
-                  onTap: () => Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  ),
+                  onTap:
+                      () => Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginScreen(),
+                        ),
+                      ),
                   child: const Text(
                     'Login',
                     style: TextStyle(
