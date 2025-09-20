@@ -8,8 +8,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-// Include Cashfree configuration
-require_once 'cashfree_config.php';
+    // Include Cashfree configuration - USE YOUR APP'S CONFIG
+    require_once 'cashfree_config.php';
 
 // Database connection
 $host = 'localhost';

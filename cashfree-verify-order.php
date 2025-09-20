@@ -11,24 +11,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 // Error handling
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
 try {
-    // Include Cashfree configuration
-    if (!file_exists('cashfree_config.php')) {
-        throw new Exception('Cashfree configuration file not found');
-    }
+    // Include Cashfree configuration - USE YOUR APP'S CONFIG
     require_once 'cashfree_config.php';
 
-    // Get order ID from request
+    // Get order ID from request (support both query and path parameters)
     $orderId = $_GET['order_id'] ?? $_POST['order_id'] ?? '';
+    
+    // If no order_id in query/post, try to get from URL path
+    if (empty($orderId)) {
+        $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $pathParts = explode('/', trim($path, '/'));
+        $lastPart = end($pathParts);
+        if (!empty($lastPart) && $lastPart !== 'cashfree-verify-order.php') {
+            $orderId = $lastPart;
+        }
+    }
 
     if (empty($orderId)) {
         throw new Exception('Order ID is required');
     }
 
-    // Verify order with Cashfree
+    // Verify order with Cashfree using YOUR APP'S CONFIG
     $verificationResult = verifyCashfreeOrder($orderId);
 
     // Always return 200, but include the status in the response
@@ -38,7 +45,7 @@ try {
     // Always return JSON, never HTML
     http_response_code(500);
     echo json_encode([
-        'status' => 'ERROR',
+        'success' => false,
         'message' => 'Verification failed: ' . $e->getMessage()
     ]);
 }
@@ -49,10 +56,10 @@ function verifyCashfreeOrder($orderId) {
         $clientId = getCashfreeClientId();
         $clientSecret = getCashfreeClientSecret();
         
-        // Use correct API version
+        // Use updated API version (2023-08-01)
         $apiVersion = '2023-08-01';
         
-        $url = $baseUrl . '/orders/' . urlencode($orderId);
+        $url = $baseUrl . '/pg/orders/' . urlencode($orderId);
         
         $headers = [
             'Content-Type: application/json',
@@ -75,17 +82,17 @@ function verifyCashfreeOrder($orderId) {
         curl_close($ch);
         
         if ($error) {
-            return ['status' => 'ERROR', 'message' => 'cURL Error: ' . $error];
+            return ['success' => false, 'message' => 'cURL Error: ' . $error];
         }
         
         if ($httpCode !== 200) {
-            return ['status' => 'ERROR', 'message' => 'HTTP Error: ' . $httpCode . ' - ' . $response];
+            return ['success' => false, 'message' => 'HTTP Error: ' . $httpCode . ' - ' . $response];
         }
         
         $responseData = json_decode($response, true);
         
         if (!$responseData) {
-            return ['status' => 'ERROR', 'message' => 'Invalid response from Cashfree'];
+            return ['success' => false, 'message' => 'Invalid response from Cashfree'];
         }
         
         // Extract payment information
@@ -95,21 +102,23 @@ function verifyCashfreeOrder($orderId) {
         $paymentMethod = $responseData['payment_method'] ?? null;
         
         return [
-            'status' => 'SUCCESS',
+            'success' => true,
             'message' => 'Order verified successfully',
-            'order_id' => $orderId,
-            'payment_status' => $paymentStatus,
-            'order_status' => $responseData['order_status'] ?? 'UNKNOWN',
-            'order_amount' => $responseData['order_amount'] ?? 0,
-            'customer_details' => $responseData['customer_details'] ?? null,
-            'transaction_id' => $transactionId,
-            'payment_method' => $paymentMethod,
-            'is_paid' => $isPaid,
-            'raw_response' => $responseData
+            'data' => [
+                'order_id' => $orderId,
+                'payment_status' => $paymentStatus,
+                'order_status' => $responseData['order_status'] ?? 'UNKNOWN',
+                'order_amount' => $responseData['order_amount'] ?? 0,
+                'customer_details' => $responseData['customer_details'] ?? null,
+                'transaction_id' => $transactionId,
+                'payment_method' => $paymentMethod,
+                'is_paid' => $isPaid,
+                'raw_response' => $responseData
+            ]
         ];
         
     } catch (Exception $e) {
-        return ['status' => 'ERROR', 'message' => 'Verification error: ' . $e->getMessage()];
+        return ['success' => false, 'message' => 'Verification error: ' . $e->getMessage()];
     }
 }
 ?>

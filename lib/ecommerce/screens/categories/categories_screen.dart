@@ -9,6 +9,7 @@ import '../product/product_list_screen.dart';
 import '../cart/cart_screen.dart';
 import '../profile/profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../widgets/modern_bottom_navigation.dart';
 
 class Category {
   final String id;
@@ -433,61 +434,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         ],
       ),
       // Bottom Navigation
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: 2, // Ecommerce is selected
-        selectedItemColor: const Color(0xFFF37E15),
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag),
-            label: 'Shop',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: 'Cart',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.popUntil(context, (route) => route.isFirst);
-              break;
-            case 1:
-              // Already on categories screen, do nothing
-              break;
-            case 2:
-              if (_userId != null) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CartScreen(userId: _userId!),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('User not logged in.')),
-                );
-              }
-              break;
-            case 3:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ProfileScreen(),
-                ),
-              );
-              break;
-          }
-        },
+      bottomNavigationBar: ModernBottomNavigation(
+        currentIndex: 1,
+        userId: _userId,
       ),
     );
   }

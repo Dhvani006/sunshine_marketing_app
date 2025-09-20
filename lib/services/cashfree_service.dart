@@ -152,9 +152,9 @@ class CashfreeService {
     required Function(String) onError,
   }) async {
     try {
-      // Cashfree expects: https://sandbox.cashfree.com/pg/view/payment?session_id=payment_session_id
+      // ✅ Cashfree expects: https://sandbox.cashfree.com/pg/view/payment/payment_session_id
       // NOT: https://sandbox.cashfree.com/pg/checkout/payment_session_id
-      final checkoutUrl = 'https://sandbox.cashfree.com/pg/view/payment?session_id=$paymentSessionId';
+      final checkoutUrl = 'https://sandbox.cashfree.com/pg/view/payment/$paymentSessionId';
       
       debugPrint('Opening Cashfree Web Checkout: $checkoutUrl');
       

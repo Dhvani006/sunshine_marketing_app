@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../categories/categories_screen.dart';
 import '../cart/cart_screen.dart';
+import '../../widgets/modern_bottom_navigation.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -379,61 +380,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
       // Bottom Navigation
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: 0, // Home is selected (profile is part of home)
-        selectedItemColor: const Color(0xFFF37E15),
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag),
-            label: 'Shop',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: 'Cart',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.popUntil(context, (route) => route.isFirst);
-              break;
-            case 1:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CategoriesScreen(),
-                ),
-              );
-              break;
-            case 2:
-              if (_userId != null) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CartScreen(userId: _userId!),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('User not logged in.')),
-                );
-              }
-              break;
-            case 3:
-              // Already on profile screen, do nothing
-              break;
-          }
-        },
+      bottomNavigationBar: ModernBottomNavigation(
+        currentIndex: 3,
+        userId: _userId,
       ),
     );
   }

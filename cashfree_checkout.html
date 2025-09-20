@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cashfree Payment - Sunshine Marketing</title>
+    <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
+    <script>
+        // Add error handling for script loading
+        window.addEventListener('error', function(e) {
+            console.error('Script error:', e);
+            addDebugInfo('Script error: ' + e.message);
+        });
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+        .loading {
+            font-size: 18px;
+            color: #666;
+            margin: 20px 0;
+        }
+        .error {
+            color: #e74c3c;
+            background: #fdf2f2;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.3s;
+            margin: 10px;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn-secondary {
+            background: #95a5a6;
+        }
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        .debug-info {
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            text-align: left;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛒 Processing Payment...</h1>
+        <div class="loading" id="loading">Please wait while we process your payment...</div>
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="debug" class="debug-info" style="display: none;">
+            <strong>Debug Info:</strong><br>
+            <span id="debug-content"></span>
+        </div>
+        <div id="success" style="display: none;">
+            <h2>✅ Payment Successful!</h2>
+            <p>Your payment has been processed successfully.</p>
+            <a href="#" class="btn" onclick="closeWindow()">Close Window</a>
+        </div>
+        <div id="failure" style="display: none;">
+            <h2>❌ Payment Failed</h2>
+            <p>Unfortunately, your payment could not be processed.</p>
+            <a href="#" class="btn" onclick="retryPayment()">Try Again</a>
+            <a href="#" class="btn btn-secondary" onclick="closeWindow()">Close Window</a>
+        </div>
+    </div>
+
+    <script>
+        // Get parameters from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const orderId = urlParams.get('order_id');
+        const paymentSessionId = urlParams.get('payment_session_id');
+        
+        console.log('Order ID:', orderId);
+        console.log('Payment Session ID:', paymentSessionId);
+        
+        // Add debug information
+        function addDebugInfo(message) {
+            console.log('Debug:', message);
+            const debugContent = document.getElementById('debug-content');
+            const debugDiv = document.getElementById('debug');
+            if (debugContent && debugDiv) {
+                debugContent.innerHTML += new Date().toLocaleTimeString() + ': ' + message + '<br>';
+                debugDiv.style.display = 'block';
+            }
+        }
+        
+        // Check parameters and start initialization
+        function startPaymentProcess() {
+            addDebugInfo('Starting payment process...');
+            
+            if (!orderId || !paymentSessionId) {
+                showError('Missing order ID or payment session ID');
+                return;
+            }
+            
+            addDebugInfo('Order ID: ' + orderId);
+            addDebugInfo('Session ID: ' + paymentSessionId.substring(0, 20) + '...');
+            
+            // Start the payment initialization
+            initializePayment();
+        }
+        
+        // Wait for Cashfree SDK to load
+        function initializePayment() {
+            try {
+                console.log('Initializing Cashfree...');
+                addDebugInfo('Initializing Cashfree...');
+                
+                // Check if Cashfree is available
+                if (typeof Cashfree === 'undefined') {
+                    addDebugInfo('Cashfree SDK not loaded - retrying in 2 seconds...');
+                    setTimeout(initializePayment, 2000);
+                    return;
+                }
+                
+                addDebugInfo('Cashfree SDK loaded successfully');
+                
+                // Initialize Cashfree with correct format
+                const cashfree = Cashfree({
+                    mode: "sandbox" // Change to "production" for live environment
+                });
+                
+                console.log('Cashfree initialized successfully');
+                addDebugInfo('Cashfree initialized successfully');
+                
+                // Configure checkout options with correct format
+                let checkoutOptions = {
+                    paymentSessionId: paymentSessionId,
+                    redirectTarget: "_self" // Open in same window
+                };
+                
+                console.log('Checkout options:', checkoutOptions);
+                addDebugInfo('Starting checkout with session: ' + paymentSessionId.substring(0, 20) + '...');
+                
+                // Start checkout with proper error handling
+                cashfree.checkout(checkoutOptions)
+                    .then(function(result) {
+                        console.log('Payment successful:', result);
+                        addDebugInfo('Payment successful');
+                        showSuccess();
+                    })
+                    .catch(function(error) {
+                        console.error('Payment failed:', error);
+                        addDebugInfo('Payment failed: ' + (error.message || error));
+                        showFailure(error.message || 'Payment failed');
+                    });
+                    
+            } catch (error) {
+                console.error('Error initializing payment:', error);
+                addDebugInfo('Error: ' + error.message);
+                showError('Error initializing payment: ' + error.message);
+            }
+        }
+        
+        // Set a timeout to show error if nothing happens
+        setTimeout(function() {
+            if (document.getElementById('loading').style.display !== 'none') {
+                addDebugInfo('Timeout reached - payment taking too long');
+                showError('Payment is taking too long. Please try again.');
+            }
+        }, 30000); // 30 seconds timeout
+        
+        // Wait for page to load completely
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startPaymentProcess);
+        } else {
+            // If page is already loaded, start immediately
+            startPaymentProcess();
+        }
+        
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('error').textContent = message;
+        }
+        
+        function showSuccess() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('success').style.display = 'block';
+        }
+        
+        function showFailure(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('failure').style.display = 'block';
+        }
+        
+        function retryPayment() {
+            location.reload(); 
+        }
+        
+        function closeWindow() {
+            // Try to close the window, if it fails, redirect to a success page
+            if (window.opener) {
+                window.close();
+            } else {
+                // If window can't be closed, redirect to success page
+                window.location.href = 'https://ad797d09e91d.ngrok-free.app/sunshine_marketing_app_backend/cashfree_return_url.php?order_id=' + orderId;
+            }
+        }
+    </script>
+</body>
+</html>

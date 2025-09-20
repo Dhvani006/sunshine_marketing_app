@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../../../api_config.dart';
+import '../../../api_config.dart' as ApiConfig;
+import 'order_success_screen.dart';
 import 'cashfree_web_checkout_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -91,22 +92,65 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         // Set a dummy local order ID for now
         _localOrderId = 1;
         
-        // Navigate to Cashfree WebView checkout
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CashfreeWebCheckoutScreen(
-              orderId: orderId,
-              userId: widget.userId,
-              amount: widget.grandTotal,
-              localOrderId: _localOrderId!,
-              cartItems: widget.cartItems,
-              customerName: _nameController.text.trim(),
-              customerEmail: _emailController.text.trim(),
-              customerPhone: _phoneController.text.trim(),
-            ),
-          ),
+        // ✅ STEP 1: Create Cashfree session on backend (same as website)
+        final sessionResponse = await http.post(
+          Uri.parse(ApiConfig.cashfreeOrderUrl),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({
+            'order_amount': widget.grandTotal,
+            'order_currency': 'INR',
+            'customer_id': 'cust_${widget.userId}',
+            'customer_name': _nameController.text.trim(),
+            'customer_email': _emailController.text.trim(),
+            'customer_phone': _phoneController.text.trim(),
+            'order_note': 'Order from Sunshine Marketing App',
+          }),
         );
+
+        print('✅ Session creation response: ${sessionResponse.statusCode}');
+        print('✅ Response body: ${sessionResponse.body}');
+
+        if (sessionResponse.statusCode == 200) {
+          final sessionData = json.decode(sessionResponse.body);
+          print('✅ Parsed sessionData: $sessionData');
+          print('✅ sessionData success: ${sessionData['success']}');
+          print('✅ sessionData type: ${sessionData['success'].runtimeType}');
+          
+          if (sessionData['success'] == true) {
+            final cashfreeOrderId = sessionData['data']['order_id'];
+            final paymentSessionId = sessionData['data']['payment_session_id'];
+            
+            print('🔑 Cashfree Order ID: $cashfreeOrderId');
+            print('🔑 Payment Session ID: $paymentSessionId');
+            
+            // ✅ STEP 2: Navigate to Cashfree checkout screen (same as website)
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CashfreeWebCheckoutScreen(
+                  orderId: cashfreeOrderId,
+                  paymentSessionId: paymentSessionId,
+                ),
+              ),
+            ).then((_) {
+              // After returning from checkout, navigate to order success screen
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => OrderSuccessScreen(
+                    orderId: cashfreeOrderId,
+                    paymentSessionId: paymentSessionId,
+                  ),
+                ),
+              );
+            });
+            
+          } else {
+            throw Exception(sessionData['message'] ?? 'Failed to create payment session');
+          }
+        } else {
+          throw Exception('HTTP ${sessionResponse.statusCode}: ${sessionResponse.body}');
+        }
     } catch (e) {
       print('=== EXCEPTION CAUGHT ===');
       print('Error type: ${e.runtimeType}');
@@ -146,7 +190,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       print('Data types: user_id(${widget.userId.runtimeType}), order_id(${orderId.runtimeType}), amount(${widget.grandTotal.runtimeType})');
 
       final response = await http.post(
-        Uri.parse('$baseUrl/save_payment.php'),
+        Uri.parse(ApiConfig.savePaymentUrl),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(paymentData),
       );
