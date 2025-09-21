@@ -3,12 +3,12 @@ class CashfreeConfig {
   // Use environment variables or build-time configuration
   static const String appId = String.fromEnvironment(
     'CASHFREE_APP_ID',
-    defaultValue: '127853d2ce159b71f6945456ab358721', // Fallback for development
+    defaultValue: 'CF_CLIENT_ID_TEST', // Safe placeholder for development
   );
   
   static const String secretKey = String.fromEnvironment(
     'CASHFREE_SECRET_KEY',
-    defaultValue: 'cfsk_ma_test_127853d2ce159b71f6945456ab358721_127853d2ce159b71f6945456ab358721', // Fallback for development
+    defaultValue: 'CF_CLIENT_SECRET_TEST', // Safe placeholder for development
   );
   
   static const String environment = String.fromEnvironment(
