@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../constants/colors.dart';
 
 class CartItem extends StatelessWidget {
   final String imageUrl;
@@ -33,10 +32,7 @@ class CartItem extends StatelessWidget {
           color: Colors.red,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Icon(
-          Icons.delete_outline,
-          color: Colors.white,
-        ),
+        child: const Icon(Icons.delete_outline, color: Colors.white),
       ),
       child: Card(
         child: Padding(
@@ -54,7 +50,7 @@ class CartItem extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 16),
-              
+
               // Product Details
               Expanded(
                 child: Column(
@@ -75,20 +71,21 @@ class CartItem extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                        color: Color(0xFF007B8F),
                       ),
                     ),
                   ],
                 ),
               ),
-              
+
               // Quantity Controls
               Row(
                 children: [
                   IconButton(
-                    onPressed: quantity > 1
-                        ? () => onQuantityChanged(quantity - 1)
-                        : null,
+                    onPressed:
+                        quantity > 1
+                            ? () => onQuantityChanged(quantity - 1)
+                            : null,
                     icon: const Icon(Icons.remove),
                     style: IconButton.styleFrom(
                       backgroundColor: Colors.grey.shade200,
@@ -121,4 +118,4 @@ class CartItem extends StatelessWidget {
       ),
     );
   }
-} 
+}

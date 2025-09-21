@@ -1,47 +1,40 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Primary gradient colors from website
-  static const Color gradientStart = Color(0xFFFF6B35); // Orange
-  static const Color gradientEnd = Color(0xFF9B59B6);   // Purple
-  
-  // Primary colors
-  static const Color primary = Color(0xFF9B59B6);       // Purple
-  static const Color accent = Color(0xFFFF6B35);        // Orange
-  static const Color background = Color(0xFFF8F9FA);    // Light gray
-  
-  // Text colors
-  static const Color textPrimary = Color(0xFF2D3436);   // Dark gray
-  static const Color textSecondary = Color(0xFF636E72); // Medium gray
-  static const Color textWhite = Colors.white;
-  
-  // Card and surface colors
-  static const Color cardBackground = Colors.white;
-  static const Color surfaceColor = Color(0xFFF1F2F6);
-  
-  // Status colors
-  static const Color error = Color(0xFFE74C3C);
-  static const Color success = Color(0xFF00B894);
-  static const Color warning = Color(0xFFF39C12);
-  
-  // Button colors
-  static const Color buttonPrimary = Color(0xFF9B59B6);
-  static const Color buttonSecondary = Color(0xFFFF6B35);
-  
-  // Shimmer colors
-  static const Color shimmerBase = Color(0xFFE0E0E0);
-  static const Color shimmerHighlight = Color(0xFFF5F5F5);
-  
-  // Gradient definitions
-  static const LinearGradient primaryGradient = LinearGradient(
-    colors: [gradientStart, gradientEnd],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-  
-  static const LinearGradient headerGradient = LinearGradient(
-    colors: [gradientStart, gradientEnd],
+  // Colors extracted from the provided website screenshots
+  // Header badge/purple
+  static const Color purple = Color(0xFF6C63FF);
+  // CTA/orange
+  static const Color orange = Color(0xFFFF7A00);
+  // Banner pink background
+  static const Color pink = Color(0xFFE55B8D);
+  // Light yellow page background
+  static const Color pageBackground = Color(0xFFFFF3CF);
+  // Surfaces/cards
+  static const Color surface = Colors.white;
+  // Text
+  static const Color textPrimary = Color(0xFF222222);
+  static const Color textSecondary = Color(0xFF6B7280);
+
+  // Gradients (banner and buttons)
+  static const LinearGradient bannerGradient = LinearGradient(
+    colors: [Color(0xFFEA5B8E), Color(0xFFCF4AB2)],
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
   );
+
+  static const LinearGradient ctaGradient = LinearGradient(
+    colors: [Color(0xFF6C63FF), Color(0xFFFF7A00)],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
+
+  // Shadows
+  static const List<BoxShadow> cardShadow = [
+    BoxShadow(
+      color: Color(0x1A000000),
+      blurRadius: 12,
+      offset: Offset(0, 4),
+    )
+  ];
 }
