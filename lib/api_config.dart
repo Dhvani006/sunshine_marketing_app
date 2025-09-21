@@ -1,13 +1,15 @@
-const String baseUrl = 'http://192.168.56.69/sunshine_marketing_app_backend';
-const String webSocketUrl = 'ws://192.168.56.69';
-const String uploadsUrl =
-    'http://192.168.56.69/sunshine_marketing_app_backend/uploads/';
+import 'config/cashfree_config.dart';
 
-// Cashfree Integration URLs - Use YOUR APP BACKEND
-const String cashfreeReturnUrl = '$baseUrl/cashfree_return_url.php';
-const String cashfreeWebhookUrl = 'https://ad797d09e91d.ngrok-free.app/sunshine_marketing_app_backend/cashfree_webhook.php';
+// Use secure configuration
+const String baseUrl = CashfreeConfig.baseUrl;
+const String webSocketUrl = 'ws://192.168.56.69';
+const String uploadsUrl = '$baseUrl/uploads/';
+
+// Cashfree Integration URLs - Use secure configuration
+const String cashfreeReturnUrl = '${CashfreeConfig.ngrokUrl}/cashfree_return_url.php';
+const String cashfreeWebhookUrl = '${CashfreeConfig.ngrokUrl}/cashfree_webhook.php';
     
-// ✅ Updated endpoints to use YOUR APP BACKEND
+// ✅ Updated endpoints to use secure configuration
 const String cashfreeOrderUrl = '$baseUrl/cashfree-create-session.php';
 const String savePaymentUrl = '$baseUrl/save_payment.php';
 const String verifyOrderUrl = '$baseUrl/cashfree-verify-order.php';

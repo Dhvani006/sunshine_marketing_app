@@ -1,0 +1,40 @@
+// lib/config/cashfree_config.dart
+class CashfreeConfig {
+  // Use environment variables or build-time configuration
+  static const String appId = String.fromEnvironment(
+    'CASHFREE_APP_ID',
+    defaultValue: '127853d2ce159b71f6945456ab358721', // Fallback for development
+  );
+  
+  static const String secretKey = String.fromEnvironment(
+    'CASHFREE_SECRET_KEY',
+    defaultValue: 'cfsk_ma_test_127853d2ce159b71f6945456ab358721_127853d2ce159b71f6945456ab358721', // Fallback for development
+  );
+  
+  static const String environment = String.fromEnvironment(
+    'CASHFREE_ENVIRONMENT',
+    defaultValue: 'sandbox',
+  );
+  
+  // API Configuration
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://192.168.56.69/sunshine_marketing_app_backend',
+  );
+  
+  static const String ngrokUrl = String.fromEnvironment(
+    'NGROK_URL',
+    defaultValue: 'https://ad797d09e91d.ngrok-free.app/sunshine_marketing_app_backend',
+  );
+  
+  // Validation
+  static bool get isConfigured => 
+      appId.isNotEmpty && 
+      secretKey.isNotEmpty && 
+      !appId.startsWith('CF_CLIENT_ID') &&
+      !secretKey.startsWith('CF_CLIENT_SECRET');
+  
+  // Environment checks
+  static bool get isSandbox => environment.toLowerCase() == 'sandbox';
+  static bool get isProduction => environment.toLowerCase() == 'production';
+}

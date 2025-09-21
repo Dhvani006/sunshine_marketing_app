@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-require_once 'payment.php';
+require_once 'config_simple.php';
 require_once 'helpers.php';
 
 try {
@@ -34,15 +34,15 @@ try {
         exit;
     }
 
-    $config = include 'payment.php';
+    $config = include 'config_simple.php';
     $cf = $config['cashfree'];
     if (empty($cf['client_id']) || strpos($cf['client_id'], 'CF_CLIENT_ID_TEST') === 0) {
-        echo json_encode(['success' => false, 'message' => 'Cashfree client_id not configured. Add keys in payment.local.php']);
+        echo json_encode(['success' => false, 'message' => 'Cashfree client_id not configured. Add keys in .env file']);
         http_response_code(500);
         exit;
     }
     if (empty($cf['client_secret']) || strpos($cf['client_secret'], 'CF_CLIENT_SECRET_TEST') === 0) {
-        echo json_encode(['success' => false, 'message' => 'Cashfree client_secret not configured. Add keys in payment.local.php']);
+        echo json_encode(['success' => false, 'message' => 'Cashfree client_secret not configured. Add keys in .env file']);
         http_response_code(500);
         exit;
     }
@@ -70,7 +70,7 @@ try {
         ],
         'order_note' => $input['order_note'] ?? 'Sunshine Marketing Order',
         'order_meta' => [
-            'return_url' => 'https://ad797d09e91d.ngrok-free.app/sunshine_marketing_app_backend/cashfree_return_url.php'
+            'return_url' => $config['server']['ngrok_url'] . '/cashfree_return_url.php'
         ]
     ];
 
