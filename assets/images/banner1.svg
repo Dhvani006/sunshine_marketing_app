@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800px" height="300px" viewBox="0 0 800 300" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <rect fill="#007B8F" x="0" y="0" width="800" height="300" rx="8"></rect>
+        <text font-family="Arial" font-size="48" font-weight="bold" fill="#FFFFFF">
+            <tspan x="40" y="120">Special Offer!</tspan>
+        </text>
+        <text font-family="Arial" font-size="32" font-weight="normal" fill="#FFFFFF">
+            <tspan x="40" y="180">Get up to 50% off on selected items</tspan>
+        </text>
+    </g>
+</svg> 
