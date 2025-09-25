@@ -65,7 +65,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       context,
     ).showSnackBar(SnackBar(content: Text(data['message'])));
 
-    if (data['success']) {
+    if (data['success'] == true) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('username', usernameController.text);
       await prefs.setString('email', emailController.text);

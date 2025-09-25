@@ -73,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Uri.parse('$baseUrl/get_carousel_images.php'),
       );
       final data = json.decode(response.body);
-      if (data['success']) {
+      if (data['success'] == true) {
         return List<String>.from(data['images']);
       } else {
         return [];
@@ -139,14 +139,14 @@ class _HomeScreenState extends State<HomeScreen> {
         Uri.parse('$baseUrl/add_to_cart.php'),
         body: {
           'user_id': userId.toString(),
-          'product_id': productId.toString(),
+          'ecomm_product_id': productId.toString(),
           'quantity': '1',
         },
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['success']) {
+        if (data['success'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('${productName} added to cart!')),
           );
@@ -702,23 +702,39 @@ class _HomeScreenState extends State<HomeScreen> {
                               product['Ecomm_product_price'],
                             );
 
-                            return GestureDetector(
-                              onTap: () {
-                                addToCart(
-                                  int.parse(
-                                    product['Ecomm_product_id'].toString(),
-                                  ),
-                                  product['Ecomm_product_name']?.toString() ??
-                                      '',
-                                  price,
-                                );
-                              },
-                              child: Card(
-                                elevation: 8,
-                                shadowColor: Colors.black.withOpacity(0.2),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+                            return Card(
+                              elevation: 8,
+                              shadowColor: Colors.black.withOpacity(0.2),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: InkWell(
+                                onTap: () {
+                                  // Navigate to product detail page
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) => ProductDetailScreen(
+                                            id: int.parse(
+                                              product['Ecomm_product_id']
+                                                  .toString(),
+                                            ),
+                                            imageUrl: imageUrl,
+                                            name:
+                                                product['Ecomm_product_name']
+                                                    ?.toString() ??
+                                                '',
+                                            price: price,
+                                            discount:
+                                                0, // You can add discount logic if needed
+                                            category:
+                                                'General', // You can get category from product data if available
+                                          ),
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(12),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -839,44 +855,89 @@ class _HomeScreenState extends State<HomeScreen> {
                                               mainAxisAlignment:
                                                   MainAxisAlignment.spaceEvenly,
                                               children: [
-                                                Container(
-                                                  width: 28,
-                                                  height: 28,
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(
-                                                      0xFFF37E15,
-                                                    ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          6,
-                                                        ),
-                                                  ),
-                                                  child: const Icon(
-                                                    Icons.shopping_cart,
-                                                    color: Colors.white,
-                                                    size: 14,
-                                                  ),
-                                                ),
-                                                Container(
-                                                  width: 28,
-                                                  height: 28,
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          6,
-                                                        ),
-                                                    border: Border.all(
+                                                // Cart Button
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    addToCart(
+                                                      int.parse(
+                                                        product['Ecomm_product_id']
+                                                            .toString(),
+                                                      ),
+                                                      product['Ecomm_product_name']
+                                                              ?.toString() ??
+                                                          '',
+                                                      price,
+                                                    );
+                                                  },
+                                                  child: Container(
+                                                    width: 28,
+                                                    height: 28,
+                                                    decoration: BoxDecoration(
                                                       color: const Color(
                                                         0xFFF37E15,
                                                       ),
-                                                      width: 1,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            6,
+                                                          ),
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.shopping_cart,
+                                                      color: Colors.white,
+                                                      size: 14,
                                                     ),
                                                   ),
-                                                  child: const Icon(
-                                                    Icons.visibility,
-                                                    color: Color(0xFFF37E15),
-                                                    size: 14,
+                                                ),
+                                                // Eye Button (View Details)
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    // Navigate to product detail page
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder:
+                                                            (
+                                                              context,
+                                                            ) => ProductDetailScreen(
+                                                              id: int.parse(
+                                                                product['Ecomm_product_id']
+                                                                    .toString(),
+                                                              ),
+                                                              imageUrl:
+                                                                  imageUrl,
+                                                              name:
+                                                                  product['Ecomm_product_name']
+                                                                      ?.toString() ??
+                                                                  '',
+                                                              price: price,
+                                                              discount: 0,
+                                                              category:
+                                                                  'General',
+                                                            ),
+                                                      ),
+                                                    );
+                                                  },
+                                                  child: Container(
+                                                    width: 28,
+                                                    height: 28,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            6,
+                                                          ),
+                                                      border: Border.all(
+                                                        color: const Color(
+                                                          0xFFF37E15,
+                                                        ),
+                                                        width: 1,
+                                                      ),
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.visibility,
+                                                      color: Color(0xFFF37E15),
+                                                      size: 14,
+                                                    ),
                                                   ),
                                                 ),
                                               ],
