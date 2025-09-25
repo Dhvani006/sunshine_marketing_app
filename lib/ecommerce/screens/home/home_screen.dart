@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../constants/colors.dart';
 import '../cart/cart_screen.dart';
 import '../product/product_detail_screen.dart';
 import 'package:http/http.dart' as http;
@@ -10,7 +9,6 @@ import '../../../api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../categories/categories_screen.dart';
 import '../profile/profile_screen.dart';
-import '../../widgets/modern_bottom_navigation.dart';
 
 class Category {
   final String id;
@@ -41,10 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late Future<List<dynamic>> _trendingProductsFuture;
   int _currentCarouselIndex = 0;
   int? _userId;
-  int _selectedCategoryId = 0;
   final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocusNode = FocusNode();
-  bool _isSearchBarFocused = false;
 
   @override
   void initState() {
@@ -53,21 +48,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _carouselImagesFuture = _fetchCarouselImages();
     _masterCategoriesFuture = _fetchMasterCategories();
     _trendingProductsFuture = _fetchTrendingProducts();
-    _searchFocusNode.addListener(_onFocusChange);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _searchFocusNode.removeListener(_onFocusChange);
-    _searchFocusNode.dispose();
     super.dispose();
-  }
-
-  void _onFocusChange() {
-    setState(() {
-      _isSearchBarFocused = _searchFocusNode.hasFocus;
-    });
   }
 
   Future<void> _loadUserId() async {
@@ -87,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Uri.parse('$baseUrl/get_carousel_images.php'),
       );
       final data = json.decode(response.body);
-      if (data['success']) {
+      if (data['success'] == true) {
         return List<String>.from(data['images']);
       } else {
         return [];
@@ -133,614 +119,918 @@ class _HomeScreenState extends State<HomeScreen> {
     return double.tryParse(str) ?? 0.0;
   }
 
-  Widget _buildModernProductCard(Map<String, dynamic> product) {
-    return Container(
-      margin: const EdgeInsets.only(right: 16),
-      width: 160,
-      height: 260, // Fixed height to prevent overflow
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Product Image Container
-          Container(
-            height: 180,
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              color: Colors.grey[50],
-            ),
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              child: Image.network(
-                product['image'] ?? '',
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey[200],
-                    child: const Icon(
-                      Icons.image,
-                      color: Colors.grey,
-                      size: 50,
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-          // Product Details
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Brand Name
-                  Text(
-                    product['brand'] ?? 'Brand',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  // Product Name
-                  Expanded(
-                    child: Text(
-                      product['name'] ?? 'Product Name',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Price and Add to Cart
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '\$${product['price'] ?? '0'}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: Colors.yellow[600],
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(
-                          Icons.shopping_cart_outlined,
-                          size: 16,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  Future<void> addToCart(
+    int productId,
+    String productName,
+    double price,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('user_id');
+
+      if (userId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please login to add items to cart')),
+        );
+        return;
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/add_to_cart.php'),
+        body: {
+          'user_id': userId.toString(),
+          'ecomm_product_id': productId.toString(),
+          'quantity': '1',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${productName} added to cart!')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['message'] ?? 'Failed to add to cart')),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to add to cart')));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.height < 700;
+    final isMediumScreen = screenSize.height >= 700 && screenSize.height < 800;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Modern Header
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  // Top Row - Logo, Notifications, Profile
-                  Row(
-                    children: [
-                      // Logo
-                      const Text(
-                        'Sunshine Marketing',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const Spacer(),
-                      // Notifications
-                      Stack(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Icon(
-                              Icons.notifications_outlined,
-                              color: Colors.black54,
-                              size: 20,
-                            ),
-                          ),
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: Container(
-                              width: 12,
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: Colors.yellow[600],
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Center(
-                                child: Text(
-                                  '6',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 12),
-                      // Profile
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[300],
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Icon(
-                          Icons.person_outline,
-                          color: Colors.black54,
-                          size: 20,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Search Bar
-                  Container(
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Row(
+      body: CustomScrollView(
+        slivers: [
+          // App Bar
+          SliverAppBar(
+            floating: true,
+            pinned: true,
+            expandedHeight: isSmallScreen ? 50 : (isMediumScreen ? 60 : 70),
+            backgroundColor: Colors.white,
+            elevation: 0,
+            actions: [],
+            flexibleSpace: FlexibleSpaceBar(
+              expandedTitleScale: 1.0,
+              titlePadding: EdgeInsets.zero,
+              title: Container(
+                width: screenSize.width,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    // Logo and App Name
+                    Row(
                       children: [
-                        const SizedBox(width: 16),
-                        const Icon(
-                          Icons.search,
-                          color: Colors.grey,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            focusNode: _searchFocusNode,
-                            decoration: const InputDecoration(
-                              hintText: 'Search',
-                              hintStyle: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 16,
-                              ),
-                              border: InputBorder.none,
-                            ),
-                            onChanged: _handleSearch,
-                          ),
-                        ),
                         Container(
-                          width: 36,
-                          height: 36,
-                          margin: const EdgeInsets.only(right: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.yellow[600],
-                            borderRadius: BorderRadius.circular(18),
+                          padding: const EdgeInsets.all(4),
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            height: 32,
+                            width: 32,
+                            fit: BoxFit.contain,
                           ),
-                          child: const Icon(
-                            Icons.search,
-                            color: Colors.white,
-                            size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'SunShine Marketing',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                    const Spacer(),
+                  ],
+                ),
               ),
             ),
-            
-            // Content
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Dynamic Carousel Banner
-                    Container(
-                      margin: const EdgeInsets.all(20),
-                      child: FutureBuilder<List<String>>(
-                        future: _carouselImagesFuture,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return Container(
-                              height: 200,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: const Center(
-                                child: CircularProgressIndicator(),
-                              ),
-                            );
-                          } else if (snapshot.hasError || snapshot.data == null || snapshot.data!.isEmpty) {
-                            return Container(
-                              height: 200,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [Colors.yellow[400]!, Colors.yellow[300]!],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
+          ),
+
+          // Search Bar Section
+          SliverToBoxAdapter(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Container(
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(25),
+                  border: Border.all(color: Colors.grey[300]!, width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withAlpha(26),
+                      spreadRadius: 1,
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: _handleSearch,
+                  decoration: InputDecoration(
+                    hintText: 'Search for products...',
+                    hintStyle: TextStyle(color: Colors.grey[500], fontSize: 16),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: const Color(0xFF007B8F),
+                      size: 24,
+                    ),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 15,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Carousel Banner
+          SliverToBoxAdapter(
+            child: Container(
+              color: const Color.fromARGB(255, 249, 220, 124),
+              child: Column(
+                children: [
+                  // Background above carousel
+                  Container(
+                    height: 20,
+                    color: const Color.fromARGB(255, 249, 220, 124),
+                  ),
+                  FutureBuilder<List<String>>(
+                    future: _carouselImagesFuture,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Container(
+                          height: isSmallScreen ? 160 : 180,
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      } else if (snapshot.hasError) {
+                        return Container(
+                          height: isSmallScreen ? 160 : 180,
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  size: 40,
+                                  color: Colors.grey,
                                 ),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: const Center(
-                                child: Text(
-                                  'Welcome to Sunshine Marketing',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
-                                  ),
+                                SizedBox(height: 8),
+                                Text(
+                                  'Error loading carousel',
+                                  style: TextStyle(color: Colors.grey),
                                 ),
-                              ),
-                            );
-                          } else {
-                            return CarouselSlider(
+                              ],
+                            ),
+                          ),
+                        );
+                      } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                        return Container(
+                          height: isSmallScreen ? 160 : 180,
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.image, size: 40, color: Colors.grey),
+                                SizedBox(height: 8),
+                                Text(
+                                  'No carousel images',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      final images = snapshot.data!;
+                      return Column(
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 20),
+                            child: CarouselSlider(
                               options: CarouselOptions(
-                                height: 200,
-                                viewportFraction: 1.0,
+                                height: isSmallScreen ? 160 : 180,
+                                viewportFraction: 0.9,
+                                enlargeCenterPage: true,
                                 autoPlay: true,
-                                autoPlayInterval: const Duration(seconds: 3),
-                                autoPlayAnimationDuration: const Duration(milliseconds: 800),
-                                autoPlayCurve: Curves.fastOutSlowIn,
                                 onPageChanged: (index, reason) {
                                   setState(() {
                                     _currentCarouselIndex = index;
                                   });
                                 },
                               ),
-                              items: snapshot.data!.map((imageUrl) {
+                              items: List.generate(images.length, (index) {
+                                final imageUrl = images[index];
                                 return Container(
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
                                   decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
+                                    borderRadius: BorderRadius.circular(8),
+                                    color: Colors.white,
                                   ),
                                   child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: Image.network(
-                                      imageUrl,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Container(
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              colors: [Colors.yellow[400]!, Colors.yellow[300]!],
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
+                                    borderRadius: BorderRadius.circular(8),
+                                    child:
+                                        imageUrl.toLowerCase().endsWith('.svg')
+                                            ? SvgPicture.network(
+                                              imageUrl,
+                                              fit: BoxFit.cover,
+                                              placeholderBuilder:
+                                                  (context) => Container(
+                                                    color: Colors.white,
+                                                    child: const Center(
+                                                      child: Column(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                          Icon(
+                                                            Icons.image,
+                                                            size: 40,
+                                                            color: Colors.grey,
+                                                          ),
+                                                          SizedBox(height: 8),
+                                                          Text(
+                                                            'Loading...',
+                                                            style: TextStyle(
+                                                              color:
+                                                                  Colors.grey,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                            )
+                                            : Image.network(
+                                              imageUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder:
+                                                  (
+                                                    context,
+                                                    error,
+                                                    stackTrace,
+                                                  ) => Container(
+                                                    color: Colors.white,
+                                                    child: const Center(
+                                                      child: Column(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                          Icon(
+                                                            Icons.broken_image,
+                                                            size: 40,
+                                                            color: Colors.grey,
+                                                          ),
+                                                          SizedBox(height: 8),
+                                                          Text(
+                                                            'Image not available',
+                                                            style: TextStyle(
+                                                              color:
+                                                                  Colors.grey,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
                                             ),
+                                  ),
+                                );
+                              }),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(images.length, (index) {
+                              return Container(
+                                width: 8,
+                                height: 8,
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(0xFFF37E15).withValues(
+                                    alpha:
+                                        _currentCarouselIndex == index
+                                            ? 1
+                                            : 0.4,
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  // Background below carousel
+                  Container(
+                    height: 20,
+                    color: const Color.fromARGB(255, 249, 220, 124),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Shop by Category Section (like website)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Shop by Category',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: FutureBuilder<List<Category>>(
+                      future: _masterCategoriesFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        } else if (!snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return const Text('No categories found.');
+                        }
+
+                        final categories = snapshot.data!;
+                        final displayCategories = categories.take(4).toList();
+
+                        return GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 4,
+                                childAspectRatio: 1.3,
+                                crossAxisSpacing: 8,
+                                mainAxisSpacing: 12,
+                              ),
+                          itemCount: displayCategories.length,
+                          itemBuilder: (context, index) {
+                            final cat = displayCategories[index];
+                            // Apply same image logic as trending products - handle both full URLs and relative paths
+                            final imagePath = cat.image;
+                            String finalImagePath;
+
+                            if (imagePath.startsWith('http')) {
+                              // If it's a full URL, extract just the filename
+                              final uri = Uri.parse(imagePath);
+                              finalImagePath = uri.pathSegments.last;
+                            } else {
+                              // If it's a relative path, remove uploads/ prefix if present
+                              finalImagePath = imagePath;
+                              if (finalImagePath.startsWith('uploads/')) {
+                                finalImagePath = finalImagePath.substring(
+                                  'uploads/'.length,
+                                );
+                              }
+                            }
+                            final imageUrl = '$uploadsUrl$finalImagePath';
+
+                            return InkWell(
+                              onTap: () {
+                                // Navigate to categories page
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) => CategoriesScreen(
+                                          initialCategoryId: int.parse(cat.id),
+                                        ),
+                                  ),
+                                );
+                              },
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color:
+                                          index % 2 == 0
+                                              ? Colors.pink
+                                              : Colors.grey[800],
+                                    ),
+                                    child: ClipOval(
+                                      child: Image.network(
+                                        imageUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (
+                                          context,
+                                          error,
+                                          stackTrace,
+                                        ) {
+                                          return Container(
+                                            color:
+                                                index % 2 == 0
+                                                    ? Colors.pink
+                                                    : Colors.grey[800],
+                                            child: Icon(
+                                              Icons.category,
+                                              color: Colors.white,
+                                              size: 18,
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 1,
+                                    ),
+                                    child: Text(
+                                      cat.name,
+                                      style: const TextStyle(
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.black87,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Featured Products Section (like website)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      'Featured Products',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: FutureBuilder<List<dynamic>>(
+                      future: _trendingProductsFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        } else if (snapshot.hasError) {
+                          return Text('Error: ${snapshot.error}');
+                        } else if (!snapshot.hasData ||
+                            snapshot.data!.isEmpty) {
+                          return const Text('No trending items.');
+                        }
+
+                        final products = snapshot.data!;
+                        // Show all trending products regardless of selected category
+
+                        if (products.isEmpty) {
+                          return const Text('No trending items.');
+                        }
+
+                        return GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                childAspectRatio: 0.75,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                              ),
+                          itemCount:
+                              products.length > 4
+                                  ? 4
+                                  : products
+                                      .length, // Show max 4 featured products
+                          itemBuilder: (context, index) {
+                            final product = products[index];
+                            final imagePath =
+                                product['Ecomm_product_image']?.toString() ??
+                                '';
+                            String finalImagePath = imagePath;
+                            if (finalImagePath.startsWith('uploads/')) {
+                              finalImagePath = finalImagePath.substring(
+                                'uploads/'.length,
+                              );
+                            }
+                            final imageUrl = '$uploadsUrl$finalImagePath';
+
+                            final price = safeParseDouble(
+                              product['Ecomm_product_price'],
+                            );
+
+                            return Card(
+                              elevation: 8,
+                              shadowColor: Colors.black.withOpacity(0.2),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: InkWell(
+                                onTap: () {
+                                  // Navigate to product detail page
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) => ProductDetailScreen(
+                                            id: int.parse(
+                                              product['Ecomm_product_id']
+                                                  .toString(),
+                                            ),
+                                            imageUrl: imageUrl,
+                                            name:
+                                                product['Ecomm_product_name']
+                                                    ?.toString() ??
+                                                '',
+                                            price: price,
+                                            discount:
+                                                0, // You can add discount logic if needed
+                                            category:
+                                                'General', // You can get category from product data if available
                                           ),
-                                          child: const Center(
-                                            child: Text(
-                                              'Sunshine Marketing',
-                                              style: TextStyle(
-                                                fontSize: 24,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.black,
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Product Image
+                                    Expanded(
+                                      flex: 4,
+                                      child: Stack(
+                                        children: [
+                                          Container(
+                                            width: double.infinity,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  const BorderRadius.vertical(
+                                                    top: Radius.circular(12),
+                                                  ),
+                                              color: Colors.white,
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  const BorderRadius.vertical(
+                                                    top: Radius.circular(12),
+                                                  ),
+                                              child: Image.network(
+                                                imageUrl,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (
+                                                  context,
+                                                  error,
+                                                  stackTrace,
+                                                ) {
+                                                  return Container(
+                                                    color: Colors.white,
+                                                    child: const Column(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .center,
+                                                      children: [
+                                                        Icon(
+                                                          Icons.shopping_bag,
+                                                          size: 30,
+                                                          color: Colors.grey,
+                                                        ),
+                                                        Text(
+                                                          'No Image',
+                                                          style: TextStyle(
+                                                            fontSize: 10,
+                                                            color: Colors.grey,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                },
                                               ),
                                             ),
                                           ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                    
-                    // Categories Section
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Categories',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const CategoriesScreen(),
-                                ),
-                              );
-                            },
-                            child: const Text(
-                              'See All >',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Categories Grid - Vertical Layout
-                    FutureBuilder<List<Category>>(
-                      future: _masterCategoriesFuture,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const SizedBox(
-                            height: 200,
-                            child: Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
-                        } else if (snapshot.hasError) {
-                          return const SizedBox(
-                            height: 200,
-                            child: Center(
-                              child: Text('Error loading categories'),
-                            ),
-                          );
-                        } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 4,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                                childAspectRatio: 0.8,
-                              ),
-                              itemCount: snapshot.data!.length,
-                              itemBuilder: (context, index) {
-                                final category = snapshot.data![index];
-                                return GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => const CategoriesScreen(),
-                                      ),
-                                    );
-                                  },
-                                  child: Column(
-                                    children: [
-                                      Container(
-                                        width: 60,
-                                        height: 60,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[100],
-                                          borderRadius: BorderRadius.circular(30),
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(30),
-                                          child: Image.network(
-                                            category.image,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) {
-                                              return const Icon(
-                                                Icons.category,
-                                                color: Colors.grey,
-                                                size: 30,
-                                              );
-                                            },
+                                          // In Stock Badge
+                                          Positioned(
+                                            top: 8,
+                                            right: 8,
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.green,
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: const Text(
+                                                'In Stock',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 8,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
                                           ),
+                                        ],
+                                      ),
+                                    ),
+                                    // Product Details
+                                    Expanded(
+                                      flex: 3,
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(6.0),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              product['Ecomm_product_name']
+                                                      ?.toString() ??
+                                                  '',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 11,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Rs. ${price.toStringAsFixed(2)}',
+                                              style: const TextStyle(
+                                                color: Color(0xFFF37E15),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.spaceEvenly,
+                                              children: [
+                                                // Cart Button
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    addToCart(
+                                                      int.parse(
+                                                        product['Ecomm_product_id']
+                                                            .toString(),
+                                                      ),
+                                                      product['Ecomm_product_name']
+                                                              ?.toString() ??
+                                                          '',
+                                                      price,
+                                                    );
+                                                  },
+                                                  child: Container(
+                                                    width: 28,
+                                                    height: 28,
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                        0xFFF37E15,
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            6,
+                                                          ),
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.shopping_cart,
+                                                      color: Colors.white,
+                                                      size: 14,
+                                                    ),
+                                                  ),
+                                                ),
+                                                // Eye Button (View Details)
+                                                GestureDetector(
+                                                  onTap: () {
+                                                    // Navigate to product detail page
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                        builder:
+                                                            (
+                                                              context,
+                                                            ) => ProductDetailScreen(
+                                                              id: int.parse(
+                                                                product['Ecomm_product_id']
+                                                                    .toString(),
+                                                              ),
+                                                              imageUrl:
+                                                                  imageUrl,
+                                                              name:
+                                                                  product['Ecomm_product_name']
+                                                                      ?.toString() ??
+                                                                  '',
+                                                              price: price,
+                                                              discount: 0,
+                                                              category:
+                                                                  'General',
+                                                            ),
+                                                      ),
+                                                    );
+                                                  },
+                                                  child: Container(
+                                                    width: 28,
+                                                    height: 28,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            6,
+                                                          ),
+                                                      border: Border.all(
+                                                        color: const Color(
+                                                          0xFFF37E15,
+                                                        ),
+                                                        width: 1,
+                                                      ),
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.visibility,
+                                                      color: Color(0xFFF37E15),
+                                                      size: 14,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        category.name,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.black87,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          );
-                        } else {
-                          return const SizedBox(
-                            height: 200,
-                            child: Center(
-                              child: Text('No categories available'),
-                            ),
-                          );
-                        }
-                      },
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Recommended Styles Section
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Recommended Products',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {},
-                            child: const Text(
-                              'See All >',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 14,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Products List
-                    FutureBuilder<List<dynamic>>(
-                      future: _trendingProductsFuture,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const SizedBox(
-                            height: 200,
-                            child: Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          );
-                        } else if (snapshot.hasError) {
-                          return const SizedBox(
-                            height: 200,
-                            child: Center(
-                              child: Text('Error loading products'),
-                            ),
-                          );
-                        } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                          return SizedBox(
-                            height: 280,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
-                              itemCount: snapshot.data!.length,
-                              itemBuilder: (context, index) {
-                                final product = snapshot.data![index];
-                                return GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => ProductDetailScreen(
-                                          id: int.parse(product['id'].toString()),
-                                          imageUrl: product['image'] ?? '',
-                                          name: product['name'] ?? 'Product',
-                                          price: double.parse(product['price']?.toString() ?? '0'),
-                                          discount: int.parse(product['discount']?.toString() ?? '0'),
-                                          category: product['category'] ?? 'Category',
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  child: _buildModernProductCard(product),
-                                );
-                              },
-                            ),
-                          );
-                        } else {
-                          return const SizedBox(
-                            height: 200,
-                            child: Center(
-                              child: Text('No products available'),
-                            ),
-                          );
-                        }
+                            );
+                          },
+                        );
                       },
                     ),
-                    
-                    const SizedBox(height: 20),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-      
-      // Modern Bottom Navigation
-      bottomNavigationBar: ModernBottomNavigation(
-        currentIndex: 0,
-        userId: _userId,
+
+      // Bottom Navigation
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: 0, // Home is selected
+        selectedItemColor: const Color(0xFFF37E15),
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.store_outlined),
+            label: 'Shop',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_cart_outlined),
+            label: 'Cart',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
+        ],
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              // Already on home screen, do nothing
+              break;
+            case 1:
+              // Navigate to categories screen
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CategoriesScreen(),
+                ),
+              );
+              break;
+            case 2:
+              if (_userId != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CartScreen(userId: _userId!),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('User not logged in.')),
+                );
+              }
+              break;
+            case 3:
+              if (_userId != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileScreen(),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('User not logged in.')),
+                );
+              }
+              break;
+          }
+        },
       ),
     );
   }
-
 }

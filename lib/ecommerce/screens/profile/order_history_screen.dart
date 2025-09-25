@@ -28,7 +28,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       body: {'user_id': userId},
     );
     final data = json.decode(response.body);
-    if (data['success']) {
+    if (data['success'] == true) {
       return List<Map<String, dynamic>>.from(data['orders']);
     } else {
       throw Exception(data['message'] ?? 'Failed to load orders');
