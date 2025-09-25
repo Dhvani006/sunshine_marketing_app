@@ -163,8 +163,7 @@
                 // Configure checkout options with correct format
                 let checkoutOptions = {
                     paymentSessionId: paymentSessionId,
-                    redirectTarget: "_self", // Open in same window
-                    returnUrl: 'https://b81a71185ea7.ngrok-free.app/sunshine_marketing_app_backend/cashfree_return_url.php?order_id=' + orderId
+                    redirectTarget: "_self" // Open in same window
                 };
                 
                 console.log('Checkout options:', checkoutOptions);
@@ -231,12 +230,8 @@
             if (window.opener) {
                 window.close();
             } else {
-                // If window can't be closed, redirect to success page with proper order_id
-                if (orderId) {
-                    window.location.href = 'https://b81a71185ea7.ngrok-free.app/sunshine_marketing_app_backend/cashfree_return_url.php?order_id=' + orderId;
-                } else {
-                    console.error('No order ID available for return URL');
-                }
+                // If window can't be closed, redirect to success page
+                window.location.href = 'https://ad797d09e91d.ngrok-free.app/sunshine_marketing_app_backend/cashfree_return_url.php?order_id=' + orderId;
             }
         }
     </script>

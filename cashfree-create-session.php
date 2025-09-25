@@ -12,11 +12,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once 'config_simple.php';
 require_once 'helpers.php';
 
-// Load local config if available
-if (file_exists(__DIR__ . '/config_local.php')) {
-    $localConfig = include 'config_local.php';
-}
-
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         echo json_encode(['success' => false, 'message' => 'Only POST method allowed']);
@@ -39,42 +34,15 @@ try {
         exit;
     }
 
-    // Get local order ID if provided (for Flutter app)
-    $localOrderId = $input['local_order_id'] ?? null;
-
     $config = include 'config_simple.php';
-    
-    // Use local config if available, otherwise use main config
-    if (isset($localConfig)) {
-        $cf = $localConfig['cashfree'];
-        $serverConfig = $localConfig['server'];
-    } else {
-        $cf = $config['cashfree'];
-        $serverConfig = $config['server'];
-    }
-    
-    // Check if credentials are properly configured
+    $cf = $config['cashfree'];
     if (empty($cf['client_id']) || strpos($cf['client_id'], 'CF_CLIENT_ID_TEST') === 0) {
-        echo json_encode([
-            'success' => false, 
-            'message' => 'Cashfree client_id not configured. Please add your actual Cashfree credentials to config_local.php',
-            'debug_info' => [
-                'current_client_id' => $cf['client_id'],
-                'config_file' => isset($localConfig) ? 'config_local.php' : 'config_simple.php'
-            ]
-        ]);
+        echo json_encode(['success' => false, 'message' => 'Cashfree client_id not configured. Add keys in .env file']);
         http_response_code(500);
         exit;
     }
     if (empty($cf['client_secret']) || strpos($cf['client_secret'], 'CF_CLIENT_SECRET_TEST') === 0) {
-        echo json_encode([
-            'success' => false, 
-            'message' => 'Cashfree client_secret not configured. Please add your actual Cashfree credentials to config_local.php',
-            'debug_info' => [
-                'current_client_secret' => substr($cf['client_secret'], 0, 10) . '...',
-                'config_file' => isset($localConfig) ? 'config_local.php' : 'config_simple.php'
-            ]
-        ]);
+        echo json_encode(['success' => false, 'message' => 'Cashfree client_secret not configured. Add keys in .env file']);
         http_response_code(500);
         exit;
     }
@@ -102,7 +70,7 @@ try {
         ],
         'order_note' => $input['order_note'] ?? 'Sunshine Marketing Order',
         'order_meta' => [
-            'return_url' => $serverConfig['ngrok_url'] . '/cashfree_return_url.php?order_id=' . $orderId
+            'return_url' => $config['server']['ngrok_url'] . '/cashfree_return_url.php'
         ]
     ];
 
@@ -122,16 +90,10 @@ try {
             'Content-Type: application/json',
             'x-client-id: ' . $cf['client_id'],
             'x-client-secret: ' . $cf['client_secret'],
-            'x-api-version: 2023-08-01',
-            'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'x-api-version: 2023-08-01'
         ],
         CURLOPT_POSTFIELDS => json_encode($payload),
-        CURLOPT_TIMEOUT => 30,
-        CURLOPT_FOLLOWLOCATION => false,
-        CURLOPT_MAXREDIRS => 0,
-        CURLOPT_PROXY => '', // Disable proxy
-        CURLOPT_PROXYUSERPWD => '',
-        CURLOPT_HTTPPROXYTUNNEL => false,
+        CURLOPT_TIMEOUT => 20,
     ]);
     // For local dev on some environments, SSL root certs may be missing; disable verification in sandbox only
     if ($isSandbox) {
@@ -158,42 +120,15 @@ try {
 
     $data = json_decode($response, true);
     if ($httpCode >= 200 && $httpCode < 300) {
-        // Debug: Log the full response
-        error_log("Cashfree Debug - Full Response Data: " . json_encode($data));
-        
         // Check if we have the required fields
         if (!isset($data['payment_session_id'])) {
-            error_log("Cashfree Debug - Missing payment_session_id in response");
-            error_log("Cashfree Debug - Available fields: " . implode(', ', array_keys($data ?: [])));
-            
             echo json_encode([
                 'success' => false, 
                 'message' => 'Cashfree did not return payment_session_id',
-                'data' => $data,
-                'debug_info' => [
-                    'http_code' => $httpCode,
-                    'response_fields' => array_keys($data ?: []),
-                    'full_response' => $response
-                ]
+                'data' => $data
             ]);
             http_response_code(500);
             exit;
-        }
-
-        // Update local order with Cashfree order ID if provided
-        if ($localOrderId) {
-            try {
-                $pdo = new PDO('mysql:host=localhost;dbname=sunshine_marketing', 'root', '');
-                $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-                
-                $stmt = $pdo->prepare("UPDATE orders SET cashfree_order_id = ? WHERE Order_id = ?");
-                $stmt->execute([$data['order_id'] ?? $orderId, $localOrderId]);
-                
-                error_log("Updated local order $localOrderId with Cashfree order ID: " . ($data['order_id'] ?? $orderId));
-            } catch (Exception $e) {
-                error_log("Failed to update local order with Cashfree order ID: " . $e->getMessage());
-                // Don't fail the entire request if this update fails
-            }
         }
 
         echo json_encode([
@@ -205,8 +140,7 @@ try {
                 'order_status' => $data['order_status'] ?? 'ACTIVE',
                 'checkout_url' => $isSandbox 
                     ? "https://sandbox.cashfree.com/pg/checkout/{$data['payment_session_id']}"
-                    : "https://www.cashfree.com/pg/checkout/{$data['payment_session_id']}",
-                'local_order_id' => $localOrderId
+                    : "https://www.cashfree.com/pg/checkout/{$data['payment_session_id']}"
             ]
         ]);
         exit;

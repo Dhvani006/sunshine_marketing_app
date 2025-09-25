@@ -80,56 +80,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     try {
       print('=== CREATING LOCAL ORDER ===');
-      
-      // ✅ STEP 1: Create local order in database first
-      final orderData = {
-        'user_id': widget.userId,
-        'items': widget.cartItems.map((item) => {
-          'id': item['Ecomm_product_id'],
-          'quantity': item['Quantity'],
-          'price': item['Ecomm_product_price'],
-        }).toList(),
-        'address': _addressController.text.trim(),
-        'city': _cityController.text.trim(),
-        'state': _stateController.text.trim(),
-        'pincode': _pincodeController.text.trim(),
-        'payment_method': 'online',
-        'total_amount': widget.grandTotal,
-        'order_notes': 'Order from Sunshine Marketing App',
-        'order_status': 'Pending',
-        'payment_status': 'Pending',
-      };
-      
-      print('Creating local order with data: $orderData');
-      
-      final orderResponse = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/create_order.php'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(orderData),
-      );
-      
-      print('Order creation response: ${orderResponse.statusCode}');
-      print('Order creation body: ${orderResponse.body}');
-      
-      if (orderResponse.statusCode != 200) {
-        throw Exception('Failed to create local order: ${orderResponse.body}');
-      }
-      
-      final orderResult = json.decode(orderResponse.body);
-      if (!orderResult['success']) {
-        throw Exception('Order creation failed: ${orderResult['message']}');
-      }
-      
-      final orderIds = orderResult['data']['order_ids'] as List;
-      final localOrderId = int.parse(orderIds.first.toString()); // Convert to int
+      // Generate a simple order ID for now
+      final orderId = 'ORDER_${DateTime.now().millisecondsSinceEpoch}';
       
       setState(() {
-        _localOrderId = localOrderId;
+        _orderId = orderId;
       });
       
-      print('✅ LOCAL ORDER CREATED: ID=$localOrderId');
+      print('Generated Order ID: $orderId');
+        print('✅ ORDER ID GENERATED, PROCEEDING TO PAYMENT');
+        // Set a dummy local order ID for now
+        _localOrderId = 1;
         
-        // ✅ STEP 2: Create Cashfree session on backend
+        // ✅ STEP 1: Create Cashfree session on backend (same as website)
         final sessionResponse = await http.post(
           Uri.parse(ApiConfig.cashfreeOrderUrl),
           headers: {'Content-Type': 'application/json'},
@@ -141,7 +104,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             'customer_email': _emailController.text.trim(),
             'customer_phone': _phoneController.text.trim(),
             'order_note': 'Order from Sunshine Marketing App',
-            'local_order_id': localOrderId, // Include local order ID
           }),
         );
 
@@ -184,28 +146,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             });
             
           } else {
-            // Handle configuration errors specifically
-            String errorMessage = sessionData['message'] ?? 'Failed to create payment session';
-            if (sessionData['message']?.contains('not configured') == true) {
-              errorMessage = 'Payment gateway not configured. Please contact support.';
-            }
-            throw Exception(errorMessage);
+            throw Exception(sessionData['message'] ?? 'Failed to create payment session');
           }
         } else {
-          final errorBody = sessionResponse.body;
-          print('❌ Session creation failed: $errorBody');
-          
-          // Try to parse error for better user experience
-          try {
-            final errorData = json.decode(errorBody);
-            String errorMessage = errorData['message'] ?? 'Payment session creation failed';
-            if (errorData['message']?.contains('not configured') == true) {
-              errorMessage = 'Payment gateway not configured. Please contact support.';
-            }
-            throw Exception(errorMessage);
-          } catch (e) {
-            throw Exception('HTTP ${sessionResponse.statusCode}: Payment session creation failed');
-          }
+          throw Exception('HTTP ${sessionResponse.statusCode}: ${sessionResponse.body}');
         }
     } catch (e) {
       print('=== EXCEPTION CAUGHT ===');

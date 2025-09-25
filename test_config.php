@@ -1,32 +1,50 @@
 <?php
-// Simple test to check Cashfree configuration
-header('Content-Type: application/json');
+// Test script to verify secure configuration
+require_once 'config.php';
+
+echo "=== SECURE CONFIGURATION TEST ===\n";
+echo "Testing PHP configuration loading...\n\n";
 
 try {
-    $config = include 'config_simple.php';
+    $config = include 'config.php';
     
-    // Load local config if available
-    if (file_exists(__DIR__ . '/config_local.php')) {
-        $localConfig = include 'config_local.php';
-        $cf = $localConfig['cashfree'];
-        $configFile = 'config_local.php';
+    echo "✅ Configuration loaded successfully\n";
+    echo "Cashfree App ID: " . substr($config['cashfree']['client_id'], 0, 10) . "...\n";
+    echo "Cashfree Secret: " . substr($config['cashfree']['client_secret'], 0, 10) . "...\n";
+    echo "Environment: " . $config['cashfree']['environment'] . "\n";
+    echo "Base URL: " . $config['server']['base_url'] . "\n";
+    echo "Ngrok URL: " . $config['server']['ngrok_url'] . "\n\n";
+    
+    // Test environment variable loading
+    echo "=== ENVIRONMENT VARIABLES TEST ===\n";
+    $appId = getenv('CASHFREE_APP_ID');
+    $secretKey = getenv('CASHFREE_SECRET_KEY');
+    
+    if ($appId && $secretKey) {
+        echo "✅ Environment variables loaded successfully\n";
+        echo "App ID from env: " . substr($appId, 0, 10) . "...\n";
+        echo "Secret from env: " . substr($secretKey, 0, 10) . "...\n";
     } else {
-        $cf = $config['cashfree'];
-        $configFile = 'config_simple.php';
+        echo "❌ Environment variables not loaded\n";
     }
     
-    $result = [
-        'config_file' => $configFile,
-        'client_id' => $cf['client_id'],
-        'client_secret_length' => strlen($cf['client_secret']),
-        'environment' => $cf['environment'],
-        'is_configured' => !empty($cf['client_id']) && strpos($cf['client_id'], 'CF_CLIENT_ID_TEST') !== 0,
-        'needs_setup' => empty($cf['client_id']) || strpos($cf['client_id'], 'CF_CLIENT_ID_TEST') === 0
-    ];
+    echo "\n=== SECURITY CHECK ===\n";
+    if (strpos($config['cashfree']['client_id'], 'CF_CLIENT_ID') === 0) {
+        echo "❌ Using default/placeholder App ID\n";
+    } else {
+        echo "✅ Using actual App ID\n";
+    }
     
-    echo json_encode($result, JSON_PRETTY_PRINT);
+    if (strpos($config['cashfree']['client_secret'], 'CF_CLIENT_SECRET') === 0) {
+        echo "❌ Using default/placeholder Secret Key\n";
+    } else {
+        echo "✅ Using actual Secret Key\n";
+    }
+    
+    echo "\n=== CONFIGURATION COMPLETE ===\n";
+    echo "Your API keys are now securely managed!\n";
     
 } catch (Exception $e) {
-    echo json_encode(['error' => $e->getMessage()]);
+    echo "❌ Error loading configuration: " . $e->getMessage() . "\n";
 }
 ?>

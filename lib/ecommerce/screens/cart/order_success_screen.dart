@@ -60,8 +60,6 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
           // If payment is successful, save payment details
           if (_paymentVerified) {
             await _savePaymentDetails();
-            // Also call return URL to ensure payment data is stored in database
-            await _callReturnUrl();
           }
         } else {
           setState(() {
@@ -121,35 +119,6 @@ class _OrderSuccessScreenState extends State<OrderSuccessScreen> {
       
     } catch (e) {
       print('❌ Save payment error: $e');
-    }
-  }
-
-  Future<void> _callReturnUrl() async {
-    try {
-      print('=== CALLING RETURN URL TO STORE PAYMENT DATA ===');
-      print('Order ID: ${widget.orderId}');
-      
-      // Call the return URL to ensure payment data is stored in database
-      final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/cashfree_return_url.php?order_id=${widget.orderId}'),
-      );
-      
-      print('✅ Return URL Response: ${response.statusCode}');
-      print('✅ Return URL Body: ${response.body}');
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['status'] == 'SUCCESS') {
-          print('✅ Payment data stored successfully in database');
-        } else {
-          print('❌ Return URL error: ${data['message']}');
-        }
-      } else {
-        print('❌ Return URL HTTP Error: ${response.statusCode}');
-      }
-      
-    } catch (e) {
-      print('❌ Return URL call error: $e');
     }
   }
 

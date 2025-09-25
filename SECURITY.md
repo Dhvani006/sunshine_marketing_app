@@ -32,7 +32,7 @@ nano .env
 CASHFREE_APP_ID=your_actual_app_id
 CASHFREE_SECRET_KEY=your_actual_secret_key
 CASHFREE_ENVIRONMENT=sandbox
-SERVER_URL=http://192.168.27.5/sunshine_marketing_app_backend
+SERVER_URL=http://192.168.56.69/sunshine_marketing_app_backend
 NGROK_URL=https://your-ngrok-url.ngrok-free.app/sunshine_marketing_app_backend
 ```
 

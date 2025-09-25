@@ -1,47 +1,24 @@
 import 'package:flutter/material.dart';
 
-class PaymentSuccessScreen extends StatefulWidget {
+class PaymentSuccessScreen extends StatelessWidget {
   final String orderId;
   final dynamic amount; // Changed from double to dynamic to handle both types
   final int userId;
-  final VoidCallback? onComplete;
 
   const PaymentSuccessScreen({
     Key? key,
     required this.orderId,
     required this.amount,
     required this.userId,
-    this.onComplete,
   }) : super(key: key);
-
-  @override
-  State<PaymentSuccessScreen> createState() => _PaymentSuccessScreenState();
-}
-
-class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
-  @override
-  void initState() {
-    super.initState();
-    
-    // Auto-redirect to home after 3 seconds
-    Future.delayed(Duration(seconds: 3), () {
-      if (mounted) {
-        if (widget.onComplete != null) {
-          widget.onComplete!();
-        } else {
-          Navigator.popUntil(context, (route) => route.isFirst);
-        }
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     // Debug logging
     print('=== PAYMENT SUCCESS SCREEN DEBUG ===');
-    print('orderId: ${widget.orderId} (type: ${widget.orderId.runtimeType})');
-    print('amount: ${widget.amount} (type: ${widget.amount.runtimeType})');
-    print('userId: ${widget.userId} (type: ${widget.userId.runtimeType})');
+    print('orderId: $orderId (type: ${orderId.runtimeType})');
+    print('amount: $amount (type: ${amount.runtimeType})');
+    print('userId: $userId (type: ${userId.runtimeType})');
     print('=====================================');
     
     return Scaffold(
@@ -110,7 +87,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                       children: [
                         Text('Order ID:', style: TextStyle(fontSize: 16)),
                         Text(
-                          widget.orderId,
+                          orderId,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -124,7 +101,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                       children: [
                         Text('Amount:', style: TextStyle(fontSize: 16)),
                         Text(
-                          '₹${_formatAmount(widget.amount)}',
+                          '₹${_formatAmount(amount)}',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -145,11 +122,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                     child: ElevatedButton(
                       onPressed: () {
                         // Navigate back to home/cart
-                        if (widget.onComplete != null) {
-                          widget.onComplete!();
-                        } else {
-                          Navigator.popUntil(context, (route) => route.isFirst);
-                        }
+                        Navigator.popUntil(context, (route) => route.isFirst);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,

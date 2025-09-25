@@ -27,9 +27,6 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      print('Attempting login with URL: $baseUrl/login.php');
-      print('Email: ${_emailController.text}');
-      
       final response = await http.post(
         Uri.parse('$baseUrl/login.php'),
         headers: {'Content-Type': 'application/json'},
@@ -39,59 +36,29 @@ class _LoginScreenState extends State<LoginScreen> {
         }),
       );
 
-      print('Response status code: ${response.statusCode}');
-      print('Response headers: ${response.headers}');
-      print('Response body: ${response.body}');
+      final data = json.decode(response.body);
 
-      // Check if response is successful
-      if (response.statusCode == 200) {
-        try {
-          final data = json.decode(response.body);
-          
-          if (data['status'] == 'success') {
-            // Save authentication data using AuthService
-            await AuthService.saveAuthData(
-              userId: int.parse(data['user_id'].toString()),
-              email: _emailController.text,
-              username: data['username'],
-            );
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const HomeScreen(),
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(data['message'] ?? 'Login failed')),
-            );
-          }
-        } catch (e) {
-          print('JSON decode error: $e');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Server returned invalid response. Please check server logs.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      } else {
-        // Handle non-200 status codes
-        print('Server error: ${response.statusCode}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Server error: ${response.statusCode}. Please try again.'),
-            backgroundColor: Colors.red,
+      if (data['status'] == 'success') {
+        // Save authentication data using AuthService
+        await AuthService.saveAuthData(
+          userId: int.parse(data['user_id'].toString()),
+          email: _emailController.text,
+          username: data['username'],
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const HomeScreen(),
           ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(data['message'] ?? 'Login failed')),
         );
       }
     } catch (e) {
-      print('Network error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Network error: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error: $e')),
       );
     } finally {
       setState(() => _isLoading = false);

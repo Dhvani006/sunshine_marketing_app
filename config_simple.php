@@ -28,7 +28,7 @@ return [
         'environment' => getenv('CASHFREE_ENVIRONMENT') ?: $_ENV['CASHFREE_ENVIRONMENT'] ?? 'sandbox'
     ],
     'server' => [
-        'base_url' => getenv('SERVER_URL') ?: $_ENV['SERVER_URL'] ?? 'http://192.168.27.5/sunshine_marketing_app_backend',
-        'ngrok_url' => getenv('NGROK_URL') ?: $_ENV['NGROK_URL'] ?? 'https://b81a71185ea7.ngrok-free.app/sunshine_marketing_app_backend'
+        'base_url' => getenv('SERVER_URL') ?: $_ENV['SERVER_URL'] ?? 'http://192.168.56.69/sunshine_marketing_app_backend',
+        'ngrok_url' => getenv('NGROK_URL') ?: $_ENV['NGROK_URL'] ?? 'https://ad797d09e91d.ngrok-free.app/sunshine_marketing_app_backend'
     ]
 ];
