@@ -2,7 +2,7 @@ import 'config/cashfree_config.dart';
 
 // Use secure configuration
 const String baseUrl = CashfreeConfig.baseUrl;
-const String webSocketUrl = 'ws://192.168.56.69';
+const String webSocketUrl = 'ws://192.168.27.5';
 const String uploadsUrl = '$baseUrl/uploads/';
 
 // Cashfree Integration URLs - Use secure configuration

@@ -64,7 +64,7 @@ try {
             $stmt = $pdo->prepare("
                 UPDATE payments 
                 SET Payment_status = ?, Transaction_id = ?, Payment_method = ?, Amount = ?, 
-                    Cashfree_order_id = ?, Cashfree_payment_status = ?, Cashfree_response = ?
+                    Cashfree_order_id = ?, Cashfree_payment_status = ?, Cashfree_response = ?, Updated_at = NOW()
                 WHERE Order_id = ?
             ");
             $stmt->execute([$paymentStatus, $transactionId, $paymentMethod, $amount, $cashfreeOrderId, $cashfreePaymentStatus, $cashfreeResponse, $orderId]);
@@ -74,8 +74,8 @@ try {
         } else {
             // Create new payment record
             $stmt = $pdo->prepare("
-                INSERT INTO payments (User_id, Order_id, Payment_method, Amount, Payment_status, Transaction_id, Cashfree_order_id, Cashfree_payment_status, Cashfree_response) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO payments (User_id, Order_id, Payment_method, Amount, Payment_status, Transaction_id, Cashfree_order_id, Cashfree_payment_status, Cashfree_response, Created_at, Updated_at) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
             ");
             $stmt->execute([$userId, $orderId, $paymentMethod, $amount, $paymentStatus, $transactionId, $cashfreeOrderId, $cashfreePaymentStatus, $cashfreeResponse]);
             

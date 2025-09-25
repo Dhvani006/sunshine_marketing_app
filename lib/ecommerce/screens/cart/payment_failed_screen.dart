@@ -1,53 +1,44 @@
 import 'package:flutter/material.dart';
 
-class PaymentSuccessScreen extends StatefulWidget {
+class PaymentFailedScreen extends StatefulWidget {
   final String orderId;
-  final dynamic amount; // Changed from double to dynamic to handle both types
+  final dynamic amount;
   final int userId;
+  final String errorMessage;
   final VoidCallback? onComplete;
 
-  const PaymentSuccessScreen({
+  const PaymentFailedScreen({
     Key? key,
     required this.orderId,
     required this.amount,
     required this.userId,
+    required this.errorMessage,
     this.onComplete,
   }) : super(key: key);
 
   @override
-  State<PaymentSuccessScreen> createState() => _PaymentSuccessScreenState();
+  State<PaymentFailedScreen> createState() => _PaymentFailedScreenState();
 }
 
-class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
+class _PaymentFailedScreenState extends State<PaymentFailedScreen> {
   @override
   void initState() {
     super.initState();
     
-    // Auto-redirect to home after 3 seconds
-    Future.delayed(Duration(seconds: 3), () {
-      if (mounted) {
-        if (widget.onComplete != null) {
-          widget.onComplete!();
-        } else {
-          Navigator.popUntil(context, (route) => route.isFirst);
-        }
+    // Auto-redirect to home after 5 seconds for failed payments
+    Future.delayed(Duration(seconds: 5), () {
+      if (mounted && widget.onComplete != null) {
+        widget.onComplete!();
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Debug logging
-    print('=== PAYMENT SUCCESS SCREEN DEBUG ===');
-    print('orderId: ${widget.orderId} (type: ${widget.orderId.runtimeType})');
-    print('amount: ${widget.amount} (type: ${widget.amount.runtimeType})');
-    print('userId: ${widget.userId} (type: ${widget.userId.runtimeType})');
-    print('=====================================');
-    
     return Scaffold(
       appBar: AppBar(
-        title: Text('Payment Success'),
-        backgroundColor: Colors.green,
+        title: Text('Payment Failed'),
+        backgroundColor: Colors.red,
         foregroundColor: Colors.white,
         automaticallyImplyLeading: false,
       ),
@@ -57,36 +48,36 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Success Icon
+              // Failed Icon
               Container(
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  color: Colors.green,
+                  color: Colors.red,
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.check,
+                  Icons.close,
                   size: 80,
                   color: Colors.white,
                 ),
               ),
               SizedBox(height: 32),
               
-              // Success Message
+              // Failed Message
               Text(
-                'Payment Successful!',
+                'Payment Failed',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.green,
+                  color: Colors.red,
                 ),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 16),
               
               Text(
-                'Your order has been placed successfully.',
+                widget.errorMessage,
                 style: TextStyle(
                   fontSize: 18,
                   color: Colors.grey[600],
@@ -128,7 +119,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.green,
+                            color: Colors.red,
                           ),
                         ),
                       ],
@@ -144,7 +135,6 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        // Navigate back to home/cart
                         if (widget.onComplete != null) {
                           widget.onComplete!();
                         } else {
@@ -160,7 +150,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                         ),
                       ),
                       child: Text(
-                        'Continue Shopping',
+                        'Go Home',
                         style: TextStyle(fontSize: 16),
                       ),
                     ),
@@ -169,9 +159,9 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        // View order details (you can implement this later)
+                        // Retry payment - you can implement this later
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Order details feature coming soon!')),
+                          SnackBar(content: Text('Retry payment feature coming soon!')),
                         );
                       },
                       style: ElevatedButton.styleFrom(
@@ -183,12 +173,20 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                         ),
                       ),
                       child: Text(
-                        'View Order',
+                        'Retry Payment',
                         style: TextStyle(fontSize: 16),
                       ),
                     ),
                   ),
                 ],
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Returning to app in 5 seconds...',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
               ),
             ],
           ),

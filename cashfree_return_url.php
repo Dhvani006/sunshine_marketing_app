@@ -11,10 +11,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // Include configuration file
-require_once 'cashfree_config.php';
+$config = require_once 'config.php';
+
+// Extract Cashfree configuration
+$cashfreeConfig = $config['cashfree'];
+$clientId = $cashfreeConfig['client_id'];
+$clientSecret = $cashfreeConfig['client_secret'];
+$environment = $cashfreeConfig['environment'];
 
 // Validate configuration
-if (!function_exists('getCashfreeEnvironment') || !function_exists('getCashfreeClientId') || !function_exists('getCashfreeClientSecret')) {
+if (empty($clientId) || empty($clientSecret)) {
     echo json_encode([
         'status' => 'ERROR',
         'message' => 'Cashfree API configuration not set. Please configure your API credentials.'
@@ -38,11 +44,11 @@ error_log("Cashfree Return URL accessed - Order ID: $orderId");
 
 try {
     // Step 1: Verify the payment status with Cashfree
-    $cfEnvironment = getCashfreeEnvironment();
-    $cfClientId = getCashfreeClientId();
-    $cfClientSecret = getCashfreeClientSecret();
+    $cfEnvironment = $environment;
+    $cfClientId = $clientId;
+    $cfClientSecret = $clientSecret;
     
-    $baseUrl = getCashfreeBaseUrl();
+    $baseUrl = $cfEnvironment === 'production' ? 'https://api.cashfree.com' : 'https://sandbox.cashfree.com';
     
     // Call Cashfree API to verify order status
     $ch = curl_init();
@@ -64,10 +70,16 @@ try {
     }
     
     if ($httpCode !== 200) {
-        throw new Exception('Cashfree API returned error: ' . $httpCode);
+        error_log("Cashfree API error response: " . $response);
+        throw new Exception('Cashfree API returned error: ' . $httpCode . ' - ' . $response);
     }
     
     $orderData = json_decode($response, true);
+    if (!$orderData) {
+        error_log("Failed to decode Cashfree response: " . $response);
+        throw new Exception('Invalid JSON response from Cashfree API');
+    }
+    
     error_log("Cashfree order data: " . json_encode($orderData));
     
     // Step 2: Check if payment was successful
@@ -76,14 +88,49 @@ try {
     $transactionId = null;
     $paymentMethod = 'UPI'; // Default
     
-    if (isset($orderData['cf_payment_id'])) {
+    error_log("Analyzing Cashfree order data: " . json_encode($orderData));
+    
+    // Check for successful payment indicators
+    if (isset($orderData['order_status'])) {
+        $orderStatus = $orderData['order_status'];
+        error_log("Order status from Cashfree: $orderStatus");
+        
+        // Check for different success indicators
+        if ($orderStatus === 'PAID' || $orderStatus === 'SUCCESS') {
+            $isPaid = true;
+            $paymentStatus = 'SUCCESS';
+            // Use cf_order_id as transaction ID since cf_payment_id is not available
+            $transactionId = $orderData['cf_order_id'] ?? $orderData['cf_payment_id'] ?? $orderData['payment_id'] ?? null;
+            $paymentMethod = $orderData['payment_method'] ?? 'UPI';
+            error_log("Payment successful based on order status: $orderStatus, Transaction ID: $transactionId");
+        } elseif ($orderStatus === 'ACTIVE') {
+            $paymentStatus = 'PENDING';
+            error_log("Payment pending for order: $orderId");
+        } elseif ($orderStatus === 'EXPIRED' || $orderStatus === 'CANCELLED') {
+            $paymentStatus = 'FAILED';
+            error_log("Payment failed for order: $orderId, Status: $orderStatus");
+        }
+    }
+    
+    // Fallback check for cf_payment_id (in case it exists in some responses)
+    if (!$isPaid && isset($orderData['cf_payment_id']) && !empty($orderData['cf_payment_id'])) {
         $isPaid = true;
         $paymentStatus = 'SUCCESS';
         $transactionId = $orderData['cf_payment_id'];
-        error_log("Payment successful - Transaction ID: $transactionId");
-    } elseif (isset($orderData['order_status']) && $orderData['order_status'] === 'ACTIVE') {
-        $paymentStatus = 'PENDING';
-        error_log("Payment pending for order: $orderId");
+        $paymentMethod = $orderData['payment_method'] ?? 'UPI';
+        error_log("Payment successful - Transaction ID: $transactionId, Method: $paymentMethod");
+    }
+    
+    // Additional check for payment details
+    if (isset($orderData['payment_details']) && is_array($orderData['payment_details'])) {
+        $paymentDetails = $orderData['payment_details'];
+        if (isset($paymentDetails['cf_payment_id']) && !empty($paymentDetails['cf_payment_id'])) {
+            $isPaid = true;
+            $paymentStatus = 'SUCCESS';
+            $transactionId = $paymentDetails['cf_payment_id'];
+            $paymentMethod = $paymentDetails['payment_method'] ?? 'UPI';
+            error_log("Payment successful from payment_details - Transaction ID: $transactionId");
+        }
     }
     
     // Step 3: Find the local order in your database
@@ -112,46 +159,196 @@ try {
         $existingPayment = $stmt->fetch();
         
         if (!$existingPayment) {
-            // Insert payment record
+            // Insert payment record with Cashfree data
+            error_log("Inserting payment record - Transaction ID: $transactionId, Method: $paymentMethod, Amount: $amount");
+            
             $stmt = $pdo->prepare("
-                INSERT INTO payments (User_id, Order_id, Payment_method, Amount, Payment_status, Transaction_id)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO payments (User_id, Order_id, Payment_method, Amount, Payment_status, Transaction_id, Cashfree_order_id, Cashfree_payment_status, Created_at, Updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
             ");
-            $stmt->execute([$userId, $localOrderId, $paymentMethod, $amount, 'Success', $transactionId]);
+            $stmt->execute([$userId, $localOrderId, $paymentMethod, $amount, 'Success', $transactionId, $orderId, 'SUCCESS']);
             
             $paymentId = $pdo->lastInsertId();
-            error_log("Payment record created: ID=$paymentId");
+            error_log("Payment record created: ID=$paymentId, Transaction ID=$transactionId");
             
-            // Update order with payment ID
-            $stmt = $pdo->prepare("UPDATE orders SET Payment_id = ? WHERE Order_id = ?");
+            // Update order with payment ID and status
+            $stmt = $pdo->prepare("UPDATE orders SET Payment_id = ?, payment_status = 'Success', Order_status = 'confirmed' WHERE Order_id = ?");
             $stmt->execute([$paymentId, $localOrderId]);
             
             error_log("Order updated with payment ID: $paymentId");
         } else {
             error_log("Payment already exists for order: $localOrderId");
+            
+            // Update existing payment record with transaction ID if it's missing
+            if (empty($existingPayment['Transaction_id']) && !empty($transactionId)) {
+                $stmt = $pdo->prepare("UPDATE payments SET Transaction_id = ?, Cashfree_payment_status = 'SUCCESS' WHERE Order_id = ?");
+                $stmt->execute([$transactionId, $localOrderId]);
+                error_log("Updated existing payment record with Transaction ID: $transactionId");
+            }
         }
     }
     
-    // Step 5: Return success response with redirect information
-    echo json_encode([
-        'status' => 'SUCCESS',
-        'message' => 'Payment processing completed',
-        'order_id' => $orderId,
-        'local_order_id' => $localOrderId,
-        'payment_status' => $paymentStatus,
-        'is_paid' => $isPaid,
-        'transaction_id' => $transactionId,
-        'redirect_url' => 'sunshine_marketing_app://payment_complete?order_id=' . $localOrderId . '&status=' . $paymentStatus
-    ]);
+    // Step 5: Create a proper redirect page that handles deep links
+    $deepLink = 'sunshine_marketing_app://payment_complete?order_id=' . $localOrderId . '&status=' . $paymentStatus;
+    if ($transactionId) {
+        $deepLink .= '&transaction_id=' . $transactionId;
+    }
+    
+    // Create HTML page that handles the deep link properly
+    // Set proper headers for HTML content
+    header('Content-Type: text/html; charset=UTF-8');
+    ?>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Redirecting to App...</title>
+        <style>
+            body { 
+                font-family: Arial, sans-serif; 
+                text-align: center; 
+                padding: 50px; 
+                background: #f5f5f5; 
+            }
+            .container { 
+                background: white; 
+                padding: 30px; 
+                border-radius: 10px; 
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+                max-width: 400px; 
+                margin: 0 auto; 
+            }
+            .spinner { 
+                border: 3px solid #f3f3f3; 
+                border-top: 3px solid #3498db; 
+                border-radius: 50%; 
+                width: 40px; 
+                height: 40px; 
+                animation: spin 1s linear infinite; 
+                margin: 20px auto; 
+            }
+            @keyframes spin { 
+                0% { transform: rotate(0deg); } 
+                100% { transform: rotate(360deg); } 
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>Payment Processed Successfully!</h2>
+            <div class="spinner"></div>
+            <p>Redirecting to Sunshine Marketing app...</p>
+            <p><small>If the app doesn't open automatically, please open it manually.</small></p>
+        </div>
+        
+        <script>
+            // Try multiple methods to open the app
+            const deepLink = '<?php echo $deepLink; ?>';
+            console.log('Attempting to open app with:', deepLink);
+            
+            // Method 1: Direct redirect
+            setTimeout(() => {
+                try {
+                    window.location.href = deepLink;
+                } catch (e) {
+                    console.log('Method 1 failed:', e);
+                }
+            }, 1000);
+            
+            // Method 2: Create link and click
+            setTimeout(() => {
+                try {
+                    const link = document.createElement('a');
+                    link.href = deepLink;
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } catch (e) {
+                    console.log('Method 2 failed:', e);
+                }
+            }, 1500);
+            
+            // Method 3: Iframe method
+            setTimeout(() => {
+                try {
+                    const iframe = document.createElement('iframe');
+                    iframe.style.display = 'none';
+                    iframe.src = deepLink;
+                    document.body.appendChild(iframe);
+                    setTimeout(() => {
+                        if (document.body.contains(iframe)) {
+                            document.body.removeChild(iframe);
+                        }
+                    }, 2000);
+                } catch (e) {
+                    console.log('Method 3 failed:', e);
+                }
+            }, 2000);
+            
+            // Show message after attempts
+            setTimeout(() => {
+                document.querySelector('.container').innerHTML = `
+                    <h2>Payment Complete!</h2>
+                    <p>✅ Your payment has been processed successfully.</p>
+                    <p><strong>Order ID:</strong> <?php echo $localOrderId; ?></p>
+                    <p><strong>Status:</strong> <?php echo $paymentStatus; ?></p>
+                    <p>Please open the Sunshine Marketing app to view your order details.</p>
+                `;
+            }, 5000);
+        </script>
+    </body>
+    </html>
+    <?php
+    exit();
     
 } catch (Exception $e) {
     error_log("Error in return URL handler: " . $e->getMessage());
     
-    echo json_encode([
-        'status' => 'ERROR',
-        'message' => 'Error processing payment: ' . $e->getMessage(),
-        'order_id' => $orderId,
-        'note' => 'Check server logs for details'
-    ]);
+    // Create error page instead of redirecting
+    // Set proper headers for HTML content
+    header('Content-Type: text/html; charset=UTF-8');
+    ?>
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Payment Error</title>
+        <style>
+            body { 
+                font-family: Arial, sans-serif; 
+                text-align: center; 
+                padding: 50px; 
+                background: #f5f5f5; 
+            }
+            .container { 
+                background: white; 
+                padding: 30px; 
+                border-radius: 10px; 
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+                max-width: 400px; 
+                margin: 0 auto; 
+            }
+            .error { 
+                color: #d32f2f; 
+                font-size: 48px; 
+                margin-bottom: 20px; 
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="error">⚠️</div>
+            <h2>Payment Processing Error</h2>
+            <p>There was an issue processing your payment.</p>
+            <p><strong>Error:</strong> <?php echo htmlspecialchars($e->getMessage()); ?></p>
+            <p>Please try again or contact support if the issue persists.</p>
+        </div>
+    </body>
+    </html>
+    <?php
+    exit();
 }
 ?>

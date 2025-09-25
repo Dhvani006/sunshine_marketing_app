@@ -19,12 +19,12 @@ class CashfreeConfig {
   // API Configuration
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://192.168.56.69/sunshine_marketing_app_backend',
+    defaultValue: 'http://192.168.27.5/sunshine_marketing_app_backend',
   );
   
   static const String ngrokUrl = String.fromEnvironment(
     'NGROK_URL',
-    defaultValue: 'https://ad797d09e91d.ngrok-free.app/sunshine_marketing_app_backend',
+    defaultValue: 'https://b81a71185ea7.ngrok-free.app/sunshine_marketing_app',
   );
   
   // Validation

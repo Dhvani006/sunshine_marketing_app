@@ -46,7 +46,7 @@ class _CashfreeWebCheckoutScreenState extends State<CashfreeWebCheckoutScreen> {
       _paymentSessionId = paymentSessionId;
       
       // ✅ Use your custom checkout page with JavaScript SDK
-      final checkoutUrl = 'http://192.168.56.69/sunshine_marketing_app_backend/cashfree_checkout.html?order_id=$orderId&payment_session_id=$paymentSessionId';
+      final checkoutUrl = 'http://192.168.27.5/sunshine_marketing_app_backend/cashfree_checkout.html?order_id=$orderId&payment_session_id=$paymentSessionId';
 
       
       print('✅ Custom Checkout URL: $checkoutUrl');
@@ -137,6 +137,9 @@ class _CashfreeWebCheckoutScreenState extends State<CashfreeWebCheckoutScreen> {
             ),
           );
           
+          // Call return URL to ensure payment data is stored
+          await _callReturnUrl();
+          
         } else {
           print('❌ Payment verification failed: ${data['message']}');
           setState(() {
@@ -173,6 +176,35 @@ class _CashfreeWebCheckoutScreenState extends State<CashfreeWebCheckoutScreen> {
       setState(() {
         _errorMessage = 'Status check error: $e';
       });
+    }
+  }
+
+  Future<void> _callReturnUrl() async {
+    try {
+      print('=== CALLING RETURN URL TO STORE PAYMENT DATA ===');
+      print('Order ID: ${widget.orderId}');
+      
+      // Call the return URL to ensure payment data is stored in database
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/cashfree_return_url.php?order_id=${widget.orderId}'),
+      );
+      
+      print('✅ Return URL Response: ${response.statusCode}');
+      print('✅ Return URL Body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['status'] == 'SUCCESS') {
+          print('✅ Payment data stored successfully in database');
+        } else {
+          print('❌ Return URL error: ${data['message']}');
+        }
+      } else {
+        print('❌ Return URL HTTP Error: ${response.statusCode}');
+      }
+      
+    } catch (e) {
+      print('❌ Return URL call error: $e');
     }
   }
 

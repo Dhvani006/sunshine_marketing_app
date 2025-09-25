@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deep Link Test - Sunshine Marketing</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn-success {
+            background: #28a745;
+        }
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 Deep Link Test</h1>
+        <p>This page tests the deep link functionality for the Sunshine Marketing app.</p>
+        
+        <div class="test-section">
+            <h3>Test Deep Links</h3>
+            <p>Click the buttons below to test different deep link scenarios:</p>
+            
+            <button class="btn btn-success" onclick="testDeepLink('51', 'SUCCESS')">
+                Test Success Payment (Order 51)
+            </button>
+            
+            <button class="btn" onclick="testDeepLink('52', 'PENDING')">
+                Test Pending Payment (Order 52)
+            </button>
+            
+            <button class="btn" onclick="testDeepLink('53', 'FAILED')">
+                Test Failed Payment (Order 53)
+            </button>
+            
+            <div id="result" class="result" style="display: none;">
+                <strong>Result:</strong> <span id="resultText"></span>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Manual Deep Link</h3>
+            <p>You can also manually test by entering order details:</p>
+            <input type="text" id="orderId" placeholder="Order ID" style="padding: 8px; margin: 5px;">
+            <select id="status" style="padding: 8px; margin: 5px;">
+                <option value="SUCCESS">Success</option>
+                <option value="PENDING">Pending</option>
+                <option value="FAILED">Failed</option>
+            </select>
+            <button class="btn" onclick="testCustomDeepLink()">Test Custom</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>Instructions</h3>
+            <ol>
+                <li>Make sure the Sunshine Marketing app is installed on your device</li>
+                <li>Click any of the test buttons above</li>
+                <li>The app should open automatically with the payment details</li>
+                <li>If the app doesn't open, check that it's installed and try again</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function testDeepLink(orderId, status) {
+            const deepLink = `sunshine_marketing_app://payment_complete?order_id=${orderId}&status=${status}`;
+            showResult(`Testing deep link: ${deepLink}`);
+            
+            // Try to open the app
+            try {
+                window.location.href = deepLink;
+                showResult(`Attempted to open app with order ${orderId} and status ${status}`);
+            } catch (e) {
+                showResult(`Error: ${e.message}`);
+            }
+        }
+        
+        function testCustomDeepLink() {
+            const orderId = document.getElementById('orderId').value;
+            const status = document.getElementById('status').value;
+            
+            if (!orderId) {
+                showResult('Please enter an Order ID');
+                return;
+            }
+            
+            testDeepLink(orderId, status);
+        }
+        
+        function showResult(message) {
+            const resultDiv = document.getElementById('result');
+            const resultText = document.getElementById('resultText');
+            
+            resultText.textContent = message;
+            resultDiv.style.display = 'block';
+            
+            // Hide result after 5 seconds
+            setTimeout(() => {
+                resultDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Log all deep link attempts
+        console.log('Deep Link Test Page Loaded');
+        console.log('Available test scenarios:');
+        console.log('- Order 51 (Success)');
+        console.log('- Order 52 (Pending)');
+        console.log('- Order 53 (Failed)');
+    </script>
+</body>
+</html>
